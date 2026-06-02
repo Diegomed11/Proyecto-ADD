@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+
+{% block title %}Machine Learning{% endblock %}
+
+{% block head %}
+<style>
+.custom-select { 
+    background-color: rgba(255, 255, 255, 0.4); 
+    border: 1px solid rgba(255, 255, 255, 0.6); 
+    color: #0F172A; 
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+}
+.custom-select:focus { 
+    background-color: rgba(255, 255, 255, 0.8);
+    border-color: #0EA5E9; 
+    outline: none; 
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2), inset 0 2px 4px rgba(0,0,0,0.02); 
+}
+.custom-select:disabled {
+    background-color: rgba(255, 255, 255, 0.2);
+    color: #94A3B8;
+    border-color: rgba(255, 255, 255, 0.3);
+}
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; filter: grayscale(1); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <div class="mb-6 stagger-1">
+        <h2 class="text-h2 text-on-surface mb-2 tracking-tight flex items-center gap-3">
+            <div class="w-10 h-10 bg-gradient-to-br from-[#0EA5E9] to-[#10B981] rounded-xl flex items-center justify-center shadow-md">
+                <span class="material-symbols-outlined text-white text-[24px]">model_training</span>
+            </div>
+            Machine Learning
+        </h2>
+        <p class="text-on-surface-variant text-sm font-medium">Entrena modelos predictivos seleccionando variables de tus datos en memoria.</p>
+    </div>
+
+    <!-- Configuración del Modelo -->
+    <section class="glass-panel rounded-2xl p-8 flex flex-col gap-6 stagger-2">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
+            <div>
+                <label class="block text-xs font-bold text-on-surface-variant mb-2 uppercase tracking-wider">Fuente de Datos</label>
+                <select id="ml-source" class="w-full rounded-xl px-4 py-3 text-sm custom-select font-mono font-medium" onchange="loadFeatures()">
+                    <option value="">Selecciona una fuente...</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-on-surface-variant mb-2 uppercase tracking-wider">Variable X (Predictora)</label>
+                <select id="ml-x" class="w-full rounded-xl px-4 py-3 text-sm custom-select font-mono font-medium" disabled>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-on-surface-variant mb-2 uppercase tracking-wider">Variable Y (Objetivo)</label>
+                <select id="ml-y" class="w-full rounded-xl px-4 py-3 text-sm custom-select font-mono font-medium" disabled>
+                </select>
+            </div>
+            <div>
+                <button id="ml-train-btn" onclick="trainModel()" class="w-full btn-glass-primary px-6 py-3 rounded-xl font-bold tracking-wide whitespace-nowrap" disabled>
+                    Entrenar Modelo
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Loading State -->
+    <div id="ml-loading" class="hidden flex flex-col items-center justify-center h-[200px]">
+        <div class="relative w-16 h-16 flex items-center justify-center">
+            <div class="absolute inset-0 border-4 border-white/40 border-t-secondary rounded-full animate-spin"></div>
+            <span class="material-symbols-outlined text-secondary text-[24px] absolute">sync</span>
+        </div>
+        <p class="text-secondary mt-6 text-sm font-bold tracking-wider uppercase">Entrenando Regresión Lineal...</p>
+    </div>
+
+    <!-- Results Area -->
+    <div id="ml-results" class="grid grid-cols-1 lg:grid-cols-2 gap-6 hidden">
+        <!-- Métricas -->
+        <section class="glass-panel rounded-2xl flex flex-col overflow-hidden" style="animation: fadeUp 0.6s cubic-bezier(0.16,1,0.3,1) both">
+            <div class="px-6 py-4 border-b border-border-glass bg-white/30 flex items-center gap-3">
+                <div class="w-10 h-10 bg-white/50 rounded-xl flex items-center justify-center shadow-sm border border-white/60">
+                    <span class="material-symbols-outlined text-primary text-[20px]">analytics</span>
+                </div>
+                <h4 class="text-h4 font-bold text-on-surface">Métricas del Modelo</h4>
+            </div>
+            <div class="p-6 flex flex-col gap-4">
+                <div class="bg-white/40 border border-white/60 shadow-sm p-4 rounded-xl flex justify-between items-center transition-transform hover:-translate-y-1 duration-300">
+                    <span class="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Pendiente (Coeficiente)</span>
+                    <span id="ml-coef" class="font-mono text-primary text-xl font-bold"></span>
+                </div>
+                <div class="bg-white/40 border border-white/60 shadow-sm p-4 rounded-xl flex justify-between items-center transition-transform hover:-translate-y-1 duration-300">
+                    <span class="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Intersección</span>
+                    <span id="ml-intercept" class="font-mono text-secondary text-xl font-bold"></span>
+                </div>
+                <div class="bg-white/40 border border-white/60 shadow-sm p-4 rounded-xl flex justify-between items-center transition-transform hover:-translate-y-1 duration-300">
+                    <span class="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Precisión (R² Score)</span>
+                    <span id="ml-r2" class="font-mono text-[#6366F1] text-xl font-bold"></span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Explicación -->
+        <section class="glass-panel rounded-2xl p-8 flex flex-col justify-center text-center relative overflow-hidden" style="animation: fadeUp 0.6s cubic-bezier(0.16,1,0.3,1) 0.1s both">
+            <div class="absolute -top-10 -right-10 w-32 h-32 bg-primary/10 rounded-full blur-2xl"></div>
+            <div class="absolute -bottom-10 -left-10 w-32 h-32 bg-secondary/10 rounded-full blur-2xl"></div>
+            
+            <div class="w-16 h-16 bg-white/50 border border-white/60 shadow-sm rounded-2xl flex items-center justify-center mx-auto mb-6 relative z-10">
+                <span class="material-symbols-outlined text-primary text-[32px]">insights</span>
+            </div>
+            <h4 class="text-h4 font-bold text-on-surface mb-3 relative z-10">Interpretación</h4>
+            <p class="text-on-surface-variant text-sm leading-relaxed max-w-md mx-auto font-medium relative z-10">
+                Por cada incremento de 1 unidad en la variable predictora <strong id="lbl-x" class="text-primary bg-white/60 px-2 py-0.5 rounded-md border border-white/80 font-mono shadow-sm">X</strong>, 
+                se espera que la variable objetivo <strong id="lbl-y" class="text-secondary bg-white/60 px-2 py-0.5 rounded-md border border-white/80 font-mono shadow-sm">Y</strong> 
+                cambie en promedio <strong id="lbl-coef" class="text-on-surface font-mono font-bold bg-white/60 px-2 py-0.5 rounded-md border border-white/80 shadow-sm"></strong> unidades.
+            </p>
+        </section>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        try {
+            const res = await fetch('/api/sources');
+            const data = await res.json();
+            const select = document.getElementById('ml-source');
+            data.sources.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.name;
+                opt.textContent = s.name;
+                select.appendChild(opt);
+            });
+        } catch(e) { console.error(e); }
+    });
+
+    async function loadFeatures() {
+        const source = document.getElementById('ml-source').value;
+        const selX = document.getElementById('ml-x');
+        const selY = document.getElementById('ml-y');
+        const btnTrain = document.getElementById('ml-train-btn');
+        
+        selX.innerHTML = '';
+        selY.innerHTML = '';
+        selX.disabled = true;
+        selY.disabled = true;
+        btnTrain.disabled = true;
+
+        if(!source) return;
+
+        try {
+            const res = await fetch(`/api/models/features/${encodeURIComponent(source)}`);
+            const data = await res.json();
+            
+            if(res.ok) {
+                if(data.numericas.length < 2) {
+                    if(window.showToast) showToast("Se necesitan al menos 2 columnas numéricas", "warning");
+                    return;
+                }
+                data.numericas.forEach(col => {
+                    selX.innerHTML += `<option value="${col}">${col}</option>`;
+                    selY.innerHTML += `<option value="${col}">${col}</option>`;
+                });
+                
+                if(selY.options.length > 1) selY.selectedIndex = 1;
+                
+                selX.disabled = false;
+                selY.disabled = false;
+                btnTrain.disabled = false;
+            } else {
+                if(window.showToast) showToast(data.detail, "error");
+            }
+        } catch(e) {
+            if(window.showToast) showToast("Error de red", "error");
+        }
+    }
+
+    async function trainModel() {
+        const source = document.getElementById('ml-source').value;
+        const x = document.getElementById('ml-x').value;
+        const y = document.getElementById('ml-y').value;
+        
+        if(!source || !x || !y) return;
+        if(x === y) {
+            if(window.showToast) showToast("X y Y no pueden ser la misma columna", "warning");
+            return;
+        }
+
+        document.getElementById('ml-results').classList.add('hidden');
+        document.getElementById('ml-loading').classList.remove('hidden');
+        document.getElementById('ml-train-btn').disabled = true;
+
+        try {
+            const res = await fetch(`/api/models/train`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({source: source, col_x: x, col_y: y})
+            });
+            const data = await res.json();
+            
+            document.getElementById('ml-loading').classList.add('hidden');
+            document.getElementById('ml-train-btn').disabled = false;
+
+            if(res.ok) {
+                document.getElementById('ml-results').classList.remove('hidden');
+                document.getElementById('ml-coef').textContent = data.metrics.pendiente.toFixed(4);
+                document.getElementById('ml-intercept').textContent = data.metrics.intercepto.toFixed(4);
+                document.getElementById('ml-r2').textContent = data.metrics.r2.toFixed(4);
+                
+                document.getElementById('lbl-x').textContent = x;
+                document.getElementById('lbl-y').textContent = y;
+                document.getElementById('lbl-coef').textContent = data.metrics.pendiente.toFixed(4);
+                
+                if(window.showToast) showToast("Modelo entrenado exitosamente", "success");
+            } else {
+                if(window.showToast) showToast(data.detail, "error");
+            }
+        } catch(e) {
+            document.getElementById('ml-loading').classList.add('hidden');
+            document.getElementById('ml-train-btn').disabled = false;
+            if(window.showToast) showToast("Error de red", "error");
+        }
+    }
+</script>
+{% endblock %}

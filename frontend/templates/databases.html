@@ -1,94 +1,194 @@
 {% extends "base.html" %}
 
-{% block title %}Databases{% endblock %}
+{% block title %}Bases de Datos{% endblock %}
 
 {% block head %}
 <style>
-.surface-level-1{background-color:#1e293b;border:1px solid #334155}
-.custom-input{background-color:#1e293b;border:1px solid #334155;color:#dee3e6;transition:all .2s ease}
-.custom-input:focus{border-color:#06b6d4;outline:none;box-shadow:0 0 0 2px rgba(6,182,212,.2)}
-.btn-primary{background-color:#06b6d4;color:#0f172a;transition:background-color .2s ease;font-weight:bold;}
-.btn-primary:hover{background-color:#4cd7f6}
-.btn-secondary{border:1px solid #06b6d4;color:#06b6d4;background-color:transparent;transition:all .2s ease}
-.btn-secondary:hover{background-color:rgba(6,182,212,.1)}
-.table-row-odd{background-color:#1e293b}
-.table-row-even{background-color:#243147}
-.table-row-hover:hover{background-color:#334155}
+/* Estilos Glass para Inputs */
+.custom-input { 
+    background-color: rgba(255, 255, 255, 0.4); 
+    border: 1px solid rgba(255, 255, 255, 0.6); 
+    color: #0F172A; 
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+}
+.custom-input:focus { 
+    background-color: rgba(255, 255, 255, 0.8);
+    border-color: #0EA5E9; 
+    outline: none; 
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2), inset 0 2px 4px rgba(0,0,0,0.02); 
+}
+
+.btn-secondary { 
+    border: 1px solid rgba(255,255,255,0.8); 
+    color: #0F172A; 
+    background-color: rgba(255,255,255,0.5); 
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); 
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+}
+.btn-secondary:hover { 
+    background-color: rgba(255,255,255,0.9); 
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+.btn-secondary:active { transform: translateY(0) scale(0.98); }
+
+/* Tablas */
+.table-row-hover { transition: all 0.2s ease; }
+.table-row-hover:hover { background-color: rgba(255,255,255,0.5); }
 </style>
 {% endblock %}
 
 {% block content %}
-<main class="flex-1 p-container-padding flex flex-col gap-container-padding overflow-y-auto">
-<div class="grid grid-cols-1 lg:grid-cols-12 gap-container-padding">
-<section class="lg:col-span-4 surface-level-1 rounded-lg p-container-padding flex flex-col">
-<div class="flex items-center gap-3 mb-6 border-b border-outline-variant pb-4"><span class="material-symbols-outlined text-primary">cable</span><h3 class="font-headline-sm text-headline-sm text-on-surface">PostgreSQL Connection</h3></div>
-<form id="db-connect-form" class="flex flex-col gap-4 flex-1" onsubmit="connectDb(event)">
-<div><label class="block font-label-md text-label-md text-on-surface-variant mb-1 uppercase">Host</label><input id="pg-host" class="w-full rounded px-3 py-2 custom-input font-code-md text-code-md" value="localhost" type="text" required/></div>
-<div><label class="block font-label-md text-label-md text-on-surface-variant mb-1 uppercase">Port</label><input id="pg-port" class="w-full rounded px-3 py-2 custom-input font-code-md text-code-md" value="5432" type="number" required/></div>
-<div><label class="block font-label-md text-label-md text-on-surface-variant mb-1 uppercase">Database</label><input id="pg-db" class="w-full rounded px-3 py-2 custom-input font-code-md text-code-md" placeholder="universidad" type="text" required/></div>
-<div><label class="block font-label-md text-label-md text-on-surface-variant mb-1 uppercase">User</label><input id="pg-user" class="w-full rounded px-3 py-2 custom-input font-code-md text-code-md" placeholder="admin" type="text" required/></div>
-<div><label class="block font-label-md text-label-md text-on-surface-variant mb-1 uppercase">Password</label><input id="pg-pass" class="w-full rounded px-3 py-2 custom-input font-code-md text-code-md" placeholder="••••••••" type="password"/></div>
-<div class="mt-auto pt-6"><button class="w-full py-3 rounded btn-primary font-label-md text-label-md uppercase tracking-wider flex items-center justify-center gap-2" type="submit"><span class="material-symbols-outlined text-sm">power</span>Conectar</button></div>
-</form>
-</section>
-<section class="lg:col-span-8 surface-level-1 rounded-lg flex flex-col overflow-hidden">
-<div class="p-container-padding border-b border-outline-variant flex justify-between items-center bg-surface-container">
-<div class="flex items-center gap-3"><span class="material-symbols-outlined text-primary">table_chart</span><h3 class="font-headline-sm text-headline-sm text-on-surface">Tablas Disponibles</h3></div>
-<span id="connected-db-badge" class="font-label-md text-label-md text-on-surface-variant bg-surface-variant px-3 py-1 rounded-full">Not Connected</span>
-</div>
-<div class="flex-1 overflow-y-auto">
-<table class="w-full text-left border-collapse">
-<thead class="bg-[#1e293b] border-b border-outline-variant sticky top-0 z-10"><tr>
-<th class="py-3 px-4 font-label-md text-label-md text-on-surface-variant uppercase">Table Name</th>
-<th class="py-3 px-4 font-label-md text-label-md text-on-surface-variant uppercase text-right">Actions</th>
-</tr></thead>
-<tbody id="db-tables-body" class="font-code-md text-code-md">
-    <tr><td colspan="2" class="py-6 text-center text-on-surface-variant">Conéctate a una base de datos para ver las tablas.</td></tr>
-</tbody></table>
-</div>
-</section>
-</div>
-<section id="preview-section" class="surface-level-1 rounded-lg flex flex-col overflow-hidden mt-4 hidden">
-<div class="p-container-padding border-b border-outline-variant flex justify-between items-center bg-surface-container">
-<div class="flex items-center gap-3"><span class="material-symbols-outlined text-primary">visibility</span><h3 class="font-headline-sm text-headline-sm text-on-surface">Data Preview: <span id="preview-table-name" class="text-primary font-code-md">...</span></h3></div>
-<button id="btn-load-to-memory" class="btn-primary px-4 py-2 rounded font-label-md text-label-md uppercase tracking-wider flex items-center gap-2"><span class="material-symbols-outlined text-sm">upload</span>Cargar a Fuentes</button>
-</div>
-<div class="overflow-x-auto">
-<table class="w-full text-left border-collapse whitespace-nowrap">
-<thead id="preview-thead" class="bg-[#1e293b] border-b border-outline-variant">
-    <!-- Renderizado por JS -->
-</thead>
-<tbody id="preview-tbody" class="font-code-md text-code-md">
-    <!-- Renderizado por JS -->
-</tbody></table>
-</div>
-</section>
+<div class="space-y-8">
+    <div class="stagger-1">
+        <h2 class="text-h2 text-on-surface mb-2 tracking-tight">Conexiones de Bases de Datos</h2>
+        <p class="text-on-surface-variant text-sm">Conecta a PostgreSQL o MongoDB para explorar e ingerir tablas directamente a memoria.</p>
+    </div>
 
-<!-- Simulador NoSQL -->
-<section class="surface-level-1 rounded-lg flex flex-col overflow-hidden mt-4">
-<div class="p-container-padding border-b border-outline-variant flex justify-between items-center bg-surface-container">
-<div class="flex items-center gap-3"><span class="material-symbols-outlined text-tertiary">data_object</span>
-<div>
-    <h3 class="font-headline-sm text-headline-sm text-on-surface">Simulador NoSQL (MongoDB)</h3>
-    <p class="font-body-md text-body-md text-on-surface-variant text-sm mt-1">Extrae documentos JSON anidados y los aplana automáticamente en una tabla estructurada (DataFrame) usando <code class="text-primary text-xs bg-surface p-1 rounded">pd.json_normalize</code>.</p>
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- PostgreSQL Form -->
+        <section class="lg:col-span-4 glass-panel rounded-2xl p-6 flex flex-col stagger-2">
+            <div class="flex items-center gap-3 mb-6 border-b border-border-glass pb-4">
+                <div class="w-10 h-10 bg-white/50 rounded-xl flex items-center justify-center shadow-sm border border-white/60">
+                    <span class="material-symbols-outlined text-primary text-[20px]">cable</span>
+                </div>
+                <h3 class="text-h4 font-bold text-on-surface">PostgreSQL</h3>
+            </div>
+            
+            <form id="db-connect-form" class="flex flex-col gap-4 flex-1" onsubmit="connectDb(event)">
+                <div>
+                    <label class="block text-xs font-bold text-on-surface-variant mb-1.5 uppercase tracking-wider">Servidor (Host)</label>
+                    <input id="pg-host" class="w-full rounded-xl px-4 py-2.5 custom-input text-sm font-mono font-medium" value="localhost" type="text" required/>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-on-surface-variant mb-1.5 uppercase tracking-wider">Puerto</label>
+                    <input id="pg-port" class="w-full rounded-xl px-4 py-2.5 custom-input text-sm font-mono font-medium" value="5432" type="number" required/>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-on-surface-variant mb-1.5 uppercase tracking-wider">Base de Datos</label>
+                    <input id="pg-db" class="w-full rounded-xl px-4 py-2.5 custom-input text-sm font-mono font-medium placeholder-slate-400" placeholder="universidad" type="text" required/>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-on-surface-variant mb-1.5 uppercase tracking-wider">Usuario</label>
+                    <input id="pg-user" class="w-full rounded-xl px-4 py-2.5 custom-input text-sm font-mono font-medium placeholder-slate-400" placeholder="admin" type="text" required/>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-on-surface-variant mb-1.5 uppercase tracking-wider">Contraseña</label>
+                    <input id="pg-pass" class="w-full rounded-xl px-4 py-2.5 custom-input text-sm font-mono font-medium placeholder-slate-400" placeholder="••••••••" type="password"/>
+                </div>
+                <div class="mt-6">
+                    <button class="w-full py-3 rounded-xl btn-glass-primary text-sm font-bold tracking-wide flex items-center justify-center gap-2" type="submit">
+                        <span class="material-symbols-outlined text-[18px]">power</span>
+                        Conectar
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <!-- Tablas Disponibles PG -->
+        <section class="lg:col-span-8 glass-panel rounded-2xl flex flex-col overflow-hidden stagger-3">
+            <div class="p-6 border-b border-border-glass flex justify-between items-center bg-white/30">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-white/50 rounded-xl flex items-center justify-center shadow-sm border border-white/60">
+                        <span class="material-symbols-outlined text-primary text-[20px]">table_chart</span>
+                    </div>
+                    <h3 class="text-h4 font-bold text-on-surface">Tablas Disponibles</h3>
+                </div>
+                <span id="connected-db-badge" class="text-xs font-bold text-on-surface-variant bg-white/50 px-3 py-1.5 rounded-lg border border-white/60 shadow-sm">No Conectado</span>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead class="bg-white/20 backdrop-blur-md border-b border-border-glass sticky top-0 z-10">
+                        <tr>
+                            <th class="py-4 px-6 text-xs font-bold text-on-surface-variant uppercase tracking-wider">Nombre de la Tabla</th>
+                            <th class="py-4 px-6 text-xs font-bold text-on-surface-variant uppercase tracking-wider text-right">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="db-tables-body" class="text-sm divide-y divide-border-glass">
+                        <tr><td colspan="2" class="py-16 text-center text-on-surface-variant font-medium">Conéctate a una base de datos para ver las tablas.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <!-- Vista Previa de Tabla PG -->
+    <section id="preview-section" class="glass-panel rounded-2xl flex flex-col overflow-hidden hidden">
+        <div class="p-6 border-b border-border-glass flex justify-between items-center bg-white/30">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-gradient-to-br from-[#0EA5E9] to-[#10B981] rounded-xl flex items-center justify-center shadow-md">
+                    <span class="material-symbols-outlined text-white text-[20px]">visibility</span>
+                </div>
+                <h3 class="text-h4 font-bold text-on-surface">Data Preview: <span id="preview-table-name" class="font-mono text-primary bg-white/50 px-2 py-0.5 rounded-md ml-2 border border-white/60">...</span></h3>
+            </div>
+            <button id="btn-load-to-memory" class="btn-glass-primary px-5 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2">
+                <span class="material-symbols-outlined text-[18px]">upload</span>
+                Ingestar a Memoria
+            </button>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse whitespace-nowrap">
+                <thead id="preview-thead" class="bg-white/20 backdrop-blur-md border-b border-border-glass">
+                    <!-- Renderizado por JS -->
+                </thead>
+                <tbody id="preview-tbody" class="text-sm font-mono divide-y divide-border-glass">
+                    <!-- Renderizado por JS -->
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- Conexión MongoDB -->
+    <section class="glass-panel rounded-2xl flex flex-col overflow-hidden stagger-4">
+        <div class="p-6 border-b border-border-glass bg-white/30">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-white/50 rounded-xl flex items-center justify-center shadow-sm border border-white/60">
+                    <span class="material-symbols-outlined text-secondary text-[24px]">data_object</span>
+                </div>
+                <div>
+                    <h3 class="text-h4 font-bold text-on-surface">MongoDB (NoSQL)</h3>
+                    <p class="text-sm text-on-surface-variant mt-1 font-medium">Conecta a un cluster mediante URI. Los documentos se aplanarán automáticamente.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="p-6">
+            <form id="mongo-connect-form" class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end" onsubmit="connectMongo(event)">
+                <div class="md:col-span-7">
+                    <label class="block text-xs font-bold text-on-surface-variant mb-1.5 uppercase tracking-wider">URI de Conexión</label>
+                    <input id="mongo-uri" class="w-full rounded-xl px-4 py-2.5 custom-input text-sm font-mono font-medium placeholder-slate-400" placeholder="mongodb://localhost:27017/" required/>
+                </div>
+                <div class="md:col-span-3">
+                    <label class="block text-xs font-bold text-on-surface-variant mb-1.5 uppercase tracking-wider">Database</label>
+                    <input id="mongo-db" class="w-full rounded-xl px-4 py-2.5 custom-input text-sm font-mono font-medium placeholder-slate-400" placeholder="mi_base" required/>
+                </div>
+                <div class="md:col-span-2">
+                    <button type="submit" class="w-full py-2.5 rounded-xl btn-secondary text-sm flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-[18px]">power</span>
+                        Conectar
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+        <div class="overflow-x-auto border-t border-border-glass hidden bg-white/10" id="mongo-collections-section">
+            <table class="w-full text-left border-collapse">
+                <thead class="bg-white/20 backdrop-blur-md border-b border-border-glass">
+                    <tr>
+                        <th class="py-4 px-6 text-xs font-bold text-on-surface-variant uppercase tracking-wider">Colección</th>
+                        <th class="py-4 px-6 text-xs font-bold text-on-surface-variant uppercase tracking-wider text-right">Acción</th>
+                    </tr>
+                </thead>
+                <tbody id="mongo-tables-body" class="text-sm divide-y divide-border-glass">
+                </tbody>
+            </table>
+        </div>
+    </section>
 </div>
-</div>
-<button onclick="loadNoSQLCollections()" class="btn-secondary px-3 py-1 rounded text-xs uppercase font-label-md">Refrescar</button>
-</div>
-<div class="overflow-x-auto">
-<table class="w-full text-left border-collapse">
-<thead class="bg-[#1e293b] border-b border-outline-variant"><tr>
-<th class="py-3 px-4 font-label-md text-label-md text-on-surface-variant uppercase">Colección</th>
-<th class="py-3 px-4 font-label-md text-label-md text-on-surface-variant uppercase text-right">Documentos</th>
-<th class="py-3 px-4 font-label-md text-label-md text-on-surface-variant uppercase">Vista Previa de Campos</th>
-<th class="py-3 px-4 font-label-md text-label-md text-on-surface-variant uppercase text-right">Acción</th>
-</tr></thead>
-<tbody id="nosql-tables-body" class="font-code-md text-code-md">
-    <tr><td colspan="4" class="py-6 text-center text-on-surface-variant">Cargando simulador...</td></tr>
-</tbody></table>
-</div>
-</section>
-</main>
 {% endblock %}
 
 {% block scripts %}
@@ -116,18 +216,18 @@
             const data = await response.json();
             
             if (response.ok) {
-                showToast(data.message, "success");
-                document.getElementById('connected-db-badge').textContent = `Connected: ${payload.database}`;
-                document.getElementById('connected-db-badge').classList.replace('bg-surface-variant', 'bg-primary/20');
-                document.getElementById('connected-db-badge').classList.add('text-primary');
+                if(window.showToast) showToast(data.message, "success");
+                const badge = document.getElementById('connected-db-badge');
+                badge.textContent = `Conectado: ${payload.database}`;
+                badge.className = "text-xs font-bold px-3 py-1.5 rounded-lg border bg-success-bg/80 text-success-text border-success-text/20 shadow-sm";
                 
                 loadTables();
             } else {
-                showToast(data.detail || "Error al conectar", "error");
+                if(window.showToast) showToast(data.detail || "Error al conectar", "error");
             }
         } catch (error) {
             console.error("Connection error:", error);
-            showToast("Error de red al conectar", "error");
+            if(window.showToast) showToast("Error de red al conectar", "error");
         }
     }
 
@@ -140,19 +240,25 @@
             tbody.innerHTML = '';
             
             if (data.tables && data.tables.length > 0) {
-                data.tables.forEach((t, idx) => {
-                    const rowClass = idx % 2 === 0 ? 'table-row-odd' : 'table-row-even';
+                data.tables.forEach((t) => {
                     const tr = document.createElement('tr');
-                    tr.className = `${rowClass} table-row-hover border-b border-outline-variant/30`;
+                    tr.className = `table-row-hover group`;
                     
                     tr.innerHTML = `
-                        <td class="py-3 px-4 flex items-center gap-2 text-on-surface"><span class="material-symbols-outlined text-primary text-sm">schema</span>${t.name}</td>
-                        <td class="py-3 px-4 text-right"><button onclick="previewTable('${t.name}')" class="btn-secondary px-3 py-1 rounded text-xs uppercase font-label-md cursor-pointer z-10 relative">Preview</button></td>
+                        <td class="py-4 px-6 flex items-center gap-3 text-on-surface font-semibold">
+                            <div class="w-8 h-8 bg-white/50 rounded-lg flex items-center justify-center shadow-sm border border-white/60 group-hover:text-primary transition-colors">
+                                <span class="material-symbols-outlined text-[18px]">schema</span>
+                            </div>
+                            ${t.name}
+                        </td>
+                        <td class="py-4 px-6 text-right">
+                            <button onclick="previewTable('${t.name}')" class="btn-secondary px-4 py-2 rounded-lg text-xs font-bold tracking-wide">Previsualizar</button>
+                        </td>
                     `;
                     tbody.appendChild(tr);
                 });
             } else {
-                tbody.innerHTML = '<tr><td colspan="2" class="py-6 text-center text-on-surface-variant">No se encontraron tablas públicas.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="2" class="py-16 text-center text-on-surface-variant font-medium">No se encontraron tablas públicas.</td></tr>';
             }
         } catch(error) {
             console.error(error);
@@ -166,14 +272,15 @@
             const data = await response.json();
             
             document.getElementById('preview-section').classList.remove('hidden');
+            document.getElementById('preview-section').style.animation = "fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both";
             document.getElementById('preview-table-name').textContent = tableName;
             
             // Render thead
             const thead = document.getElementById('preview-thead');
             let theadHtml = '<tr>';
             data.columns.forEach(col => {
-                const pkIcon = col.is_pk ? '<span class="material-symbols-outlined text-[14px] text-tertiary ml-1" title="Primary Key">key</span>' : '';
-                theadHtml += `<th class="py-3 px-4 font-label-md text-label-md text-on-surface-variant uppercase border-r border-outline-variant/30">${col.name} <span class="lowercase font-normal">(${col.type})</span>${pkIcon}</th>`;
+                const pkIcon = col.is_pk ? '<span class="material-symbols-outlined text-[14px] text-primary ml-1" title="Primary Key">key</span>' : '';
+                theadHtml += `<th class="py-4 px-6 text-xs font-bold text-on-surface-variant uppercase tracking-wider border-r border-border-glass last:border-0">${col.name} <span class="lowercase font-semibold opacity-70">(${col.type})</span>${pkIcon}</th>`;
             });
             theadHtml += '</tr>';
             thead.innerHTML = theadHtml;
@@ -181,14 +288,13 @@
             // Render tbody
             const tbody = document.getElementById('preview-tbody');
             let tbodyHtml = '';
-            data.preview.forEach((row, idx) => {
-                const rowClass = idx % 2 === 0 ? 'table-row-odd' : 'table-row-even';
-                let trHtml = `<tr class="${rowClass} table-row-hover border-b border-outline-variant/30">`;
+            data.preview.forEach((row) => {
+                let trHtml = `<tr class="table-row-hover">`;
                 
                 data.columns.forEach((col, colIdx) => {
                     const isFirst = colIdx === 0;
-                    const cellColor = isFirst ? 'text-primary' : (typeof row[col.name] === 'number' ? 'text-secondary' : 'text-on-surface');
-                    trHtml += `<td class="py-2 px-4 ${cellColor} border-r border-outline-variant/30">${row[col.name] !== null ? row[col.name] : '<span class="text-on-surface-variant italic">null</span>'}</td>`;
+                    const cellColor = isFirst ? 'text-on-surface font-semibold' : 'text-on-surface-variant';
+                    trHtml += `<td class="py-3 px-6 ${cellColor} border-r border-border-glass last:border-0">${row[col.name] !== null ? row[col.name] : '<span class="text-on-surface-variant/40 italic">null</span>'}</td>`;
                 });
                 
                 trHtml += '</tr>';
@@ -200,9 +306,14 @@
             const btnLoad = document.getElementById('btn-load-to-memory');
             btnLoad.onclick = () => loadToMemory(tableName);
             
+            // Smooth scroll to preview
+            setTimeout(() => {
+                document.getElementById('preview-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 100);
+            
         } catch (error) {
             console.error(error);
-            showToast("Error al cargar preview", "error");
+            if(window.showToast) showToast("Error al cargar preview", "error");
         }
     }
 
@@ -212,63 +323,82 @@
             const data = await response.json();
             
             if(response.ok) {
-                showToast(`Tabla ${tableName} cargada a memoria`, "success");
-                updateSourcesCount(); // de app.js
+                if(window.showToast) showToast(`Tabla ${tableName} cargada a memoria`, "success");
+                if(window.updateSourcesCount) updateSourcesCount(); // de app.js
             } else {
-                showToast(data.detail || "Error al cargar", "error");
+                if(window.showToast) showToast(data.detail || "Error al cargar", "error");
             }
         } catch(error) {
-            showToast("Error de red", "error");
+            if(window.showToast) showToast("Error de red", "error");
         }
     }
 
-    async function loadNoSQLCollections() {
+    async function connectMongo(e) {
+        e.preventDefault();
+        const payload = {
+            uri: document.getElementById('mongo-uri').value,
+            database: document.getElementById('mongo-db').value
+        };
         try {
-            const response = await fetch('/api/nosql/collections');
-            const data = await response.json();
-            
-            const tbody = document.getElementById('nosql-tables-body');
-            tbody.innerHTML = '';
-            
-            Object.entries(data.collections).forEach(([name, info], idx) => {
-                const rowClass = idx % 2 === 0 ? 'table-row-odd' : 'table-row-even';
-                const tr = document.createElement('tr');
-                tr.className = `${rowClass} table-row-hover border-b border-outline-variant/30`;
-                
-                tr.innerHTML = `
-                    <td class="py-3 px-4 text-tertiary font-bold flex items-center gap-2"><span class="material-symbols-outlined text-sm">folder_open</span>${name}</td>
-                    <td class="py-3 px-4 text-right">${info.total_documentos}</td>
-                    <td class="py-3 px-4 text-on-surface-variant text-xs break-words max-w-md italic">${info.campos.join(', ')}</td>
-                    <td class="py-3 px-4 text-right">
-                        <button onclick="loadNoSQLToMemory('${name}')" class="btn-primary px-3 py-1 rounded text-xs uppercase font-label-md cursor-pointer whitespace-nowrap">Aplanar y Cargar</button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
+            const res = await fetch('/api/mongo/connect', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
             });
-        } catch(error) {
-            console.error(error);
-        }
-    }
-
-    async function loadNoSQLToMemory(name) {
-        try {
-            const response = await fetch(`/api/nosql/load/${name}`, { method: 'POST' });
-            const data = await response.json();
-            
-            if(response.ok) {
-                showToast(data.message, "success");
-                updateSourcesCount(); // de app.js
+            const data = await res.json();
+            if (res.ok) {
+                if(window.showToast) showToast("Conectado a MongoDB exitosamente", "success");
+                
+                const section = document.getElementById('mongo-collections-section');
+                section.classList.remove('hidden');
+                section.style.animation = "fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both";
+                
+                const tbody = document.getElementById('mongo-tables-body');
+                tbody.innerHTML = '';
+                data.collections.forEach((name) => {
+                    tbody.innerHTML += `
+                        <tr class="table-row-hover group">
+                            <td class="py-4 px-6 text-on-surface font-semibold flex items-center gap-3">
+                                <div class="w-8 h-8 bg-white/50 rounded-lg flex items-center justify-center shadow-sm border border-white/60 group-hover:text-secondary transition-colors">
+                                    <span class="material-symbols-outlined text-[18px]">folder_open</span>
+                                </div>
+                                ${name}
+                            </td>
+                            <td class="py-4 px-6 text-right">
+                                <button onclick="loadMongoToMemory('${name}')" class="btn-glass-primary px-4 py-2 rounded-lg text-xs font-bold tracking-wide whitespace-nowrap">Ingestar Datos</button>
+                            </td>
+                        </tr>
+                    `;
+                });
             } else {
-                showToast(data.detail || "Error al cargar NoSQL", "error");
+                if(window.showToast) showToast(data.detail || "Error de conexión", "error");
             }
         } catch(error) {
-            showToast("Error de red", "error");
+            if(window.showToast) showToast("Error de red", "error");
         }
     }
 
-    // Inicializar
-    document.addEventListener('DOMContentLoaded', () => {
-        loadNoSQLCollections();
-    });
+    async function loadMongoToMemory(name) {
+        const payload = {
+            uri: document.getElementById('mongo-uri').value,
+            database: document.getElementById('mongo-db').value
+        };
+        try {
+            const res = await fetch(`/api/mongo/load/${name}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (res.ok) {
+                if(window.showToast) showToast(data.message, "success");
+                if(window.updateSourcesCount) updateSourcesCount(); // de app.js
+            } else {
+                if(window.showToast) showToast(data.detail || "Error al cargar NoSQL", "error");
+            }
+        } catch(error) {
+            if(window.showToast) showToast("Error de red", "error");
+        }
+    }
 </script>
 {% endblock %}

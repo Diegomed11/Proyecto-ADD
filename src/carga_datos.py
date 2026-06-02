@@ -16,6 +16,29 @@ import psycopg2
 
 
 class CargadorDatos:
+    """
+    Cargador centralizado de datos para el pipeline de Machine Learning.
+    
+    Esta clase maneja la ingestión de datos desde diversas fuentes
+    (archivos locales, URLs, bases de datos SQL y NoSQL) unificando
+    la salida en estructuras tabulares.
+
+    Parameters
+    ----------
+    url_base : str, optional
+        URL base para peticiones HTTP por defecto (default "").
+    tiempo_espera : int, optional
+        Tiempo máximo de espera (timeout) en segundos (default 10).
+
+    Attributes
+    ----------
+    datos_crudos : dict
+        Copia en memoria de la última carga (útil para JSON/REST).
+
+    Notes
+    -----
+    Para conexiones MongoDB utilice `cargar_desde_mongo()`.
+    """
 
     def __init__(self, url_base: str = "", tiempo_espera: int = 10):
         self.url_base = url_base
@@ -205,6 +228,28 @@ class CargadorDatos:
         cursor.close()
         conn.close()
         return total
+
+    # ── Conexión MongoDB ────────────────────────────────────────────
+
+    def listar_colecciones_mongo(self, uri: str, db_name: str) -> list:
+        from pymongo import MongoClient
+        client = MongoClient(uri, serverSelectionTimeoutMS=5000)
+        db = client[db_name]
+        return db.list_collection_names()
+
+    def cargar_desde_mongo(self, uri: str, db_name: str, coleccion: str) -> pd.DataFrame:
+        from pymongo import MongoClient
+        client = MongoClient(uri)
+        db = client[db_name]
+        cursor = db[coleccion].find()
+        datos = list(cursor)
+        client.close()
+        if not datos:
+            return pd.DataFrame()
+        for d in datos:
+            if '_id' in d:
+                d['_id'] = str(d['_id'])
+        return pd.json_normalize(datos)
 
     # ── Lectores internos ────────────────────────────────────────────
 
@@ -416,6 +461,36 @@ class WebScraper:
         except ValueError:
             self._tablas = []
         return self._tablas
+
+    def extraer_texto_y_sentimiento(self) -> dict:
+        if not self._html_crudo:
+            self.obtener_html()
+            
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup(self._html_crudo, 'html.parser')
+        parrafos = soup.find_all('p')
+        texto_limpio = " ".join([p.get_text(strip=True) for p in parrafos if len(p.get_text(strip=True)) > 20])
+        
+        texto_limpio = texto_limpio[:2000]
+        
+        if not texto_limpio:
+            return {"texto": "", "sentimiento": "N/A", "score": 0.0}
+            
+        try:
+            import os
+            os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
+            from transformers import pipeline
+            # Usar modelo de análisis de sentimientos por defecto (ligero)
+            classifier = pipeline("sentiment-analysis")
+            resultado = classifier(texto_limpio[:512])[0]
+            
+            return {
+                "texto": texto_limpio[:500] + "...", 
+                "sentimiento": resultado["label"], 
+                "score": float(resultado["score"])
+            }
+        except Exception as e:
+            return {"texto": texto_limpio[:500] + "...", "sentimiento": "Error", "score": 0.0, "error": str(e)}
 
     def obtener_tabla(self, indice: int = 0) -> pd.DataFrame:
         if not self._tablas:

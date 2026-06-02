@@ -1,114 +1,187 @@
 {% extends "base.html" %}
 
-{% block title %}Overview{% endblock %}
+{% block title %}Resumen{% endblock %}
 
 {% block content %}
-<div class="p-container-padding space-y-gutter flex-1 overflow-y-auto">
-<div class="grid grid-cols-1 md:grid-cols-3 gap-gutter">
-<div class="bg-surface-container rounded-lg border border-outline-variant p-container-padding flex flex-col justify-between hover:border-primary/50 transition-colors group">
-<div class="flex justify-between items-start mb-4"><span class="font-label-md text-label-md text-on-surface-variant uppercase">Total Sources</span><span class="material-symbols-outlined text-primary group-hover:scale-110 transition-transform">database</span></div>
-<div class="flex items-baseline gap-2"><span id="metric-total-sources" class="font-headline-lg text-headline-lg text-on-surface">0</span><span class="font-body-md text-body-md text-outline">Loaded in Memory</span></div>
-</div>
-<div class="bg-surface-container rounded-lg border border-outline-variant p-container-padding flex flex-col justify-between hover:border-primary/50 transition-colors group">
-<div class="flex justify-between items-start mb-4"><span class="font-label-md text-label-md text-on-surface-variant uppercase">Memory Usage</span><span class="material-symbols-outlined text-primary group-hover:scale-110 transition-transform">memory</span></div>
-<div class="flex items-baseline gap-2 mb-2"><span id="metric-memory" class="font-headline-lg text-headline-lg text-on-surface">0<span class="text-headline-md text-on-surface-variant">KB</span></span></div>
-<div class="w-full h-1.5 bg-surface-variant rounded-full overflow-hidden"><div class="h-full bg-primary rounded-full w-[5%]"></div></div>
-</div>
-<div class="bg-surface-container rounded-lg border border-outline-variant p-container-padding flex flex-col justify-between hover:border-primary/50 transition-colors group">
-<div class="flex justify-between items-start mb-4"><span class="font-label-md text-label-md text-on-surface-variant uppercase">PostgreSQL Status</span><span class="material-symbols-outlined text-primary group-hover:scale-110 transition-transform">link</span></div>
-<div class="flex items-baseline gap-2"><span id="metric-db-status" class="font-body-md text-body-md text-error flex items-center text-sm"><span class="material-symbols-outlined text-[16px]">cloud_off</span> Disconnected</span></div>
-</div>
-<!-- Last Activity Card Removida -->
-</div>
-<div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter mt-margin-lg">
-<div class="lg:col-span-12 bg-surface-container rounded-lg border border-outline-variant flex flex-col overflow-hidden">
-<div class="px-container-padding py-4 border-b border-outline-variant flex justify-between items-center bg-surface-container-high">
-<h3 class="font-headline-sm text-headline-sm text-on-surface flex items-center gap-2"><span class="material-symbols-outlined text-primary">table_chart</span>Fuentes en Memoria</h3>
-<button onclick="loadSourcesTable()" class="text-primary hover:bg-primary/10 p-1.5 rounded transition-colors"><span class="material-symbols-outlined text-[20px]">refresh</span></button>
-</div>
-<div class="overflow-x-auto">
-<table class="w-full text-left border-collapse">
-<thead><tr class="bg-surface-container-high border-b border-outline-variant">
-<th class="py-3 px-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Name</th>
-<th class="py-3 px-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Type</th>
-<th class="py-3 px-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider text-right">Rows / Cols</th>
-<th class="py-3 px-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider text-right">Size</th>
-<th class="py-3 px-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider text-center">Status</th>
-<th class="py-3 px-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider text-right">Actions</th>
-</tr></thead>
-<tbody id="sources-table-body" class="font-body-md text-body-md text-on-surface divide-y divide-outline-variant/30">
-<!-- Filas renderizadas por JS -->
-</tbody>
-</table>
-</div>
-</div>
-<!-- Timeline removido -->
-</div>
+<div class="space-y-8">
+
+    <!-- Métricas -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        <!-- Tarjeta: Total de Fuentes -->
+        <div class="glass-panel glass-panel-hover rounded-2xl p-6 flex flex-col justify-between group stagger-1">
+            <div class="flex justify-between items-start mb-4">
+                <span class="text-xs font-bold text-on-surface-variant tracking-[0.1em] uppercase">Total de Fuentes</span>
+                <div class="w-10 h-10 bg-gradient-to-br from-[#0EA5E9]/20 to-[#10B981]/20 rounded-xl flex items-center justify-center border border-white/50 shadow-sm">
+                    <span class="material-symbols-outlined text-primary text-[20px]">database</span>
+                </div>
+            </div>
+            <div class="flex items-baseline gap-2 mt-2">
+                <span id="metric-total-sources" class="text-display text-on-surface tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-[#0F172A] to-[#334155]">0</span>
+                <span class="text-sm font-medium text-on-surface-variant">cargadas</span>
+            </div>
+        </div>
+
+        <!-- Tarjeta: Uso de Memoria -->
+        <div class="glass-panel glass-panel-hover rounded-2xl p-6 flex flex-col justify-between group stagger-2">
+            <div class="flex justify-between items-start mb-4">
+                <span class="text-xs font-bold text-on-surface-variant tracking-[0.1em] uppercase">Uso de Memoria</span>
+                <div class="w-10 h-10 bg-gradient-to-br from-[#0EA5E9]/20 to-[#10B981]/20 rounded-xl flex items-center justify-center border border-white/50 shadow-sm">
+                    <span class="material-symbols-outlined text-primary text-[20px]">memory</span>
+                </div>
+            </div>
+            <div class="flex items-baseline gap-2 mb-4 mt-2">
+                <span id="metric-memory" class="text-display text-on-surface tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-[#0F172A] to-[#334155]">0<span class="text-h4 text-on-surface-variant ml-1 font-normal tracking-normal">KB</span></span>
+            </div>
+            <!-- Progress minimalista y vivo -->
+            <div class="w-full h-1.5 bg-white/40 rounded-full overflow-hidden shadow-inner">
+                <div class="h-full bg-gradient-to-r from-[#0EA5E9] to-[#10B981] rounded-full transition-all duration-700 cubic-bezier(0.34, 1.56, 0.64, 1)" style="width:5%"></div>
+            </div>
+        </div>
+
+        <!-- Tarjeta: Estado PostgreSQL -->
+        <div class="glass-panel glass-panel-hover rounded-2xl p-6 flex flex-col justify-between group stagger-3">
+            <div class="flex justify-between items-start mb-4">
+                <span class="text-xs font-bold text-on-surface-variant tracking-[0.1em] uppercase">Estado de PostgreSQL</span>
+                <div class="w-10 h-10 bg-gradient-to-br from-[#0EA5E9]/20 to-[#10B981]/20 rounded-xl flex items-center justify-center border border-white/50 shadow-sm">
+                    <span class="material-symbols-outlined text-primary text-[20px]">link</span>
+                </div>
+            </div>
+            <div class="flex items-center gap-3 mt-auto">
+                <div class="w-2.5 h-2.5 rounded-full bg-slate-300 relative"></div>
+                <span id="metric-db-status" class="text-sm font-semibold text-on-surface-variant">Desconectado</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de fuentes -->
+    <div class="glass-panel rounded-2xl flex flex-col overflow-hidden border-b-0 stagger-4">
+        <div class="px-6 py-5 border-b border-border-glass bg-white/30 flex justify-between items-center">
+            <h3 class="text-h4 text-on-surface flex items-center gap-3 font-semibold">
+                Fuentes en Memoria
+            </h3>
+            <button onclick="loadSourcesTable()" class="w-8 h-8 flex items-center justify-center text-on-surface-variant hover:text-primary rounded-full hover:bg-white/50 transition-all duration-300 active:scale-95 border border-transparent hover:border-white/50" aria-label="Actualizar tabla">
+                <span class="material-symbols-outlined text-[18px] transition-transform duration-500 hover:rotate-180">refresh</span>
+            </button>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse whitespace-nowrap">
+                <thead class="bg-white/20 backdrop-blur-md">
+                    <tr class="border-b border-border-glass">
+                        <th class="py-4 px-6 text-xs font-bold text-on-surface-variant uppercase tracking-wider w-[40%]">Nombre</th>
+                        <th class="py-4 px-6 text-xs font-bold text-on-surface-variant uppercase tracking-wider">Tipo</th>
+                        <th class="py-4 px-6 text-xs font-bold text-on-surface-variant uppercase tracking-wider text-right">Filas / Cols</th>
+                        <th class="py-4 px-6 text-xs font-bold text-on-surface-variant uppercase tracking-wider text-right">Tamaño</th>
+                        <th class="py-4 px-6 text-xs font-bold text-on-surface-variant uppercase tracking-wider text-center">Estado</th>
+                        <th class="py-4 px-6 text-xs font-bold text-on-surface-variant uppercase tracking-wider text-right">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="sources-table-body" class="text-sm text-on-surface divide-y divide-border-glass">
+                    <!-- Skeleton loading inicial -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
     async function loadSourcesTable() {
+        const tbody = document.getElementById('sources-table-body');
+        
+        // Mostrar skeleton mientras carga
+        tbody.innerHTML = createTableSkeleton(3, 6);
+        
         try {
             const response = await fetch('/api/sources');
             const data = await response.json();
             
-            const tbody = document.getElementById('sources-table-body');
             tbody.innerHTML = '';
-            
             document.getElementById('metric-total-sources').textContent = data.sources.length;
             
+            // Empty state informativo
             if (data.sources.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="py-6 text-center text-on-surface-variant">No hay fuentes cargadas en memoria. Ve a la pestaña Pipelines para cargar datos.</td></tr>';
+                const emptyRow = document.createElement('tr');
+                emptyRow.innerHTML = `
+                    <td colspan="6" class="py-16 text-center">
+                        <div class="flex flex-col items-center gap-4">
+                            <div class="w-16 h-16 bg-white/50 border border-white/80 rounded-2xl flex items-center justify-center mb-2 shadow-sm">
+                                <span class="material-symbols-outlined text-primary text-[28px]">inbox</span>
+                            </div>
+                            <div>
+                                <p class="text-base font-semibold text-on-surface">Sin fuentes cargadas</p>
+                                <p class="text-sm text-on-surface-variant mt-1">Sube datos desde la pestaña de Flujos de Trabajo.</p>
+                            </div>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(emptyRow);
                 return;
             }
             
             data.sources.forEach((src, idx) => {
                 const tr = document.createElement('tr');
-                tr.className = idx % 2 === 0 ? "bg-surface-container hover:bg-surface-variant/40 transition-colors" : "bg-surface-container-low hover:bg-surface-variant/40 transition-colors";
+                tr.className = 'hover:bg-white/40 transition-colors duration-200 group';
                 
                 let icon = 'description';
-                let colorClass = 'bg-primary/10 text-primary border-primary/20';
+                let typeBadge = '';
                 
-                if (src.type === 'SQL') { icon = 'storage'; colorClass = 'bg-[#a78bfa]/10 text-[#a78bfa] border-[#a78bfa]/20'; }
-                else if (src.type === 'NoSQL') { icon = 'data_object'; colorClass = 'bg-tertiary/10 text-tertiary border-tertiary/20'; }
-                else if (src.type === 'TSV') { colorClass = 'bg-secondary/10 text-secondary border-secondary/20'; }
+                if (src.type === 'SQL') { icon = 'storage'; }
+                else if (src.type === 'NoSQL') { icon = 'data_object'; }
                 
                 tr.innerHTML = `
-                    <td class="py-3 px-4 font-medium flex items-center gap-2"><span class="material-symbols-outlined text-on-surface-variant text-[18px]">${icon}</span>${src.name}</td>
-                    <td class="py-3 px-4"><span class="px-2 py-1 rounded text-xs border ${colorClass}">${src.type}</span></td>
-                    <td class="py-3 px-4 text-right font-code-md text-code-md">${src.rows} / ${src.cols}</td>
-                    <td class="py-3 px-4 text-right text-on-surface-variant">${src.size}</td>
-                    <td class="py-3 px-4 text-center"><span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs border border-primary/20"><span class="w-1.5 h-1.5 rounded-full bg-primary"></span>Ready</span></td>
-                    <td class="py-3 px-4 text-right">
-                        <button onclick="deleteSource('${src.name}')" class="text-error hover:text-red-400 p-1 rounded transition-colors" title="Eliminar"><span class="material-symbols-outlined text-[18px]">delete</span></button>
+                    <td class="py-4 px-6 font-semibold flex items-center gap-3">
+                        <div class="w-8 h-8 bg-white/50 rounded-lg flex items-center justify-center text-on-surface-variant group-hover:text-primary transition-colors shadow-sm border border-white/60">
+                            <span class="material-symbols-outlined text-[18px]">${icon}</span>
+                        </div>
+                        <span class="truncate max-w-[250px]">${src.name}</span>
+                    </td>
+                    <td class="py-4 px-6">
+                        <span class="inline-flex px-2.5 py-1 rounded-md border border-white/60 text-xs font-semibold text-on-surface-variant bg-white/40 shadow-sm">${src.type}</span>
+                    </td>
+                    <td class="py-4 px-6 text-right font-mono text-sm text-on-surface-variant">${src.rows} / ${src.cols}</td>
+                    <td class="py-4 px-6 text-right font-mono text-sm text-on-surface-variant">${src.size}</td>
+                    <td class="py-4 px-6 text-center">
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-success-bg/80 text-success-text border border-success-text/20 text-xs font-bold tracking-wide shadow-sm">
+                            <span class="w-1.5 h-1.5 rounded-full bg-success-text animate-pulse"></span>
+                            Listo
+                        </span>
+                    </td>
+                    <td class="py-4 px-6 text-right">
+                        <button onclick="deleteSource('${src.name}')" 
+                                class="text-on-surface-variant hover:text-error-text w-8 h-8 inline-flex justify-center items-center rounded-full hover:bg-error-bg/80 transition-colors duration-200" 
+                                title="Eliminar"
+                                aria-label="Eliminar fuente ${src.name}">
+                            <span class="material-symbols-outlined text-[18px]">delete</span>
+                        </button>
                     </td>
                 `;
                 tbody.appendChild(tr);
             });
             
         } catch (error) {
-            console.error("Error loading sources:", error);
-            showToast("Error al cargar las fuentes de memoria", "error");
+            console.error("Error al cargar fuentes:", error);
+            if(window.showToast) showToast("Error al cargar las fuentes", "error");
         }
     }
 
     async function deleteSource(name) {
-        if(!confirm(`¿Estás seguro que deseas eliminar '${name}'?`)) return;
+        if(!confirm(`¿Eliminar '${name}'?`)) return;
         
         try {
             const res = await fetch(`/api/sources/${encodeURIComponent(name)}`, { method: 'DELETE' });
             if(res.ok) {
-                showToast(`Fuente eliminada`, "success");
+                if(window.showToast) showToast(`Fuente eliminada`, "success");
                 loadSourcesTable();
-                updateSourcesCount(); // de app.js
+                updateSourcesCount();
             } else {
-                showToast("Error al eliminar", "error");
+                if(window.showToast) showToast("Error al eliminar", "error");
             }
         } catch(e) {
-            console.error(e);
-            showToast("Error de red", "error");
+            if(window.showToast) showToast("Error de red", "error");
         }
     }
 

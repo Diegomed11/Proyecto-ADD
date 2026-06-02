@@ -17,12 +17,16 @@ _fuentes: Dict[str, pd.DataFrame] = {}
 _config_pg = None
 _cargador = CargadorDatos()
 
-class PgConfig(BaseModel):
+class PGConnection(BaseModel):
     host: str
     port: int
     database: str
     user: str
     password: str
+
+class MongoConnection(BaseModel):
+    uri: str
+    database: str
 
 @router.get("/sources")
 async def get_sources():
@@ -63,7 +67,7 @@ async def delete_source(source_name: str):
     raise HTTPException(status_code=404, detail="Fuente no encontrada")
 
 @router.post("/connect_db")
-async def connect_db(config: PgConfig):
+async def connect_db(config: PGConnection):
     """Prueba la conexión a la base de datos y guarda las credenciales"""
     global _config_pg
     try:
@@ -137,23 +141,27 @@ async def load_table(table_name: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/nosql/collections")
-async def list_nosql_collections():
-    """Lista las colecciones del Simulador NoSQL"""
-    sim = SimuladorNoSQL()
-    return {"collections": sim.resumen()}
-
-@router.post("/nosql/load/{collection_name}")
-async def load_nosql(collection_name: str):
-    """Convierte una colección anidada NoSQL en un DataFrame aplanado y lo guarda en memoria"""
+@router.post("/mongo/connect")
+async def connect_mongo(req: MongoConnection):
+    """Conecta a un cluster de MongoDB y lista sus colecciones."""
+    cargador = CargadorDatos()
     try:
-        sim = SimuladorNoSQL()
-        df = sim.coleccion_a_dataframe(collection_name)
-        nombre = f"NoSQL:{collection_name}"
+        colecciones = cargador.listar_colecciones_mongo(req.uri, req.database)
+        return {"status": "success", "message": "Conectado a MongoDB", "collections": colecciones}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/mongo/load/{collection}")
+async def load_mongo(req: MongoConnection, collection: str):
+    """Carga una colección NoSQL y la aplana en un DataFrame estructurado."""
+    cargador = CargadorDatos()
+    try:
+        df = cargador.cargar_desde_mongo(req.uri, req.database, collection)
+        nombre = f"Mongo:{req.database}.{collection}"
         _fuentes[nombre] = df
-        return {"status": "success", "message": f"Colección '{collection_name}' aplanada y cargada a memoria", "source_name": nombre}
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        return {"status": "success", "message": f"Colección '{collection}' aplanada y cargada a memoria", "source_name": nombre}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
@@ -244,6 +252,7 @@ async def run_scraping(req: ScrapeRequest):
         scraper.establecer_url(req.url)
         extracto = scraper.obtener_extracto_html(1500)
         tablas = scraper.extraer_tablas()
+        nlp_resultado = scraper.extraer_texto_y_sentimiento()
         
         tablas_validas = []
         for i, t in enumerate(tablas):
@@ -274,7 +283,51 @@ async def run_scraping(req: ScrapeRequest):
             "valid_tables": len(tablas_validas),
             "saved_source": saved_name,
             "preview_cols": cols,
-            "preview_data": preview_data
+            "preview_data": preview_data,
+            "nlp": nlp_resultado
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/models/features/{source_name:path}")
+async def get_model_features(source_name: str):
+    """Devuelve las columnas numéricas disponibles para modelado."""
+    if source_name not in _fuentes:
+        raise HTTPException(status_code=404, detail="Fuente no encontrada")
+    
+    df = _fuentes[source_name]
+    from src.preprocesamiento import Preprocesador
+    prep = Preprocesador(df)
+    tipos = prep.detectar_tipos_columna()
+    
+    return {"status": "success", "numericas": tipos.get("numericas", [])}
+
+class TrainRequest(BaseModel):
+    source: str
+    col_x: str
+    col_y: str
+
+@router.post("/models/train")
+async def train_model(req: TrainRequest):
+    """Entrena un modelo de regresión lineal simple usando Scikit-Learn."""
+    if req.source not in _fuentes:
+        raise HTTPException(status_code=404, detail="Fuente no encontrada")
+        
+    df = _fuentes[req.source]
+    from src.modelado import Modelador
+    modelador = Modelador(df)
+    
+    try:
+        modelador.entrenar_regresion_lineal(req.col_x, req.col_y)
+        coefs = modelador.obtener_coeficientes()
+        
+        from sklearn.metrics import r2_score
+        y_true = modelador.obtener_valores_reales()
+        y_pred = modelador.obtener_predicciones()
+        r2 = r2_score(y_true, y_pred)
+        
+        coefs["r2"] = float(r2)
+        
+        return {"status": "success", "metrics": coefs}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))

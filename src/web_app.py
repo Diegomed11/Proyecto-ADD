@@ -45,6 +45,10 @@ async def statistics(request: Request):
 async def web_scraping(request: Request):
     return templates.TemplateResponse("web_scraping.html", {"request": request, "active_tab": "web-scraping"})
 
+@app.get("/modeling")
+async def modeling(request: Request):
+    return templates.TemplateResponse("modeling.html", {"request": request, "active_tab": "modeling"})
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("src.web_app:app", host="127.0.0.1", port=8000, reload=True)
