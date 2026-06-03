@@ -1,0 +1,20 @@
+# Control de versiones y config de editores
+.git/
+.gitignore
+.claude/
+
+# Skills de diseño (no se necesitan en runtime, pesan mucho)
+.agents/
+skills-lock.json
+
+# Cachés de Python
+**/__pycache__/
+*.pyc
+*.pyo
+
+# Pruebas y bases de datos locales de ejemplo
+tests/
+*.db
+
+# Recursos originales (las copias servidas viven en frontend/static/icons)
+recursos/

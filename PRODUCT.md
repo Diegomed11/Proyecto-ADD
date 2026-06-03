@@ -11,10 +11,10 @@ Estudiantes universitarios y profesores en clases de bases de datos avanzadas o 
 Demostrar la capacidad de integrar múltiples orígenes de datos (SQL, NoSQL, APIs, Web Scraping) en un solo pipeline de pandas, y realizar modelado estadístico (Regresión Lineal) con NLP integrado.
 
 ## Brand Personality
-Moderno, transparente (Liquid/Glassmorphism), académico pero profesional (tipo herramienta BI empresarial).
+Oscuro suave y legible (tipo IDE / herramienta analítica): base gris-oscuro (no casi-negro), un único acento ámbar, texto de alto contraste, tipografía mono para datos. Sobrio, no decorado.
 
 ## Anti-references
-Estilos genéricos de "IA" (fondos oscuros con cian/magenta saturado), componentes desalineados, tablas aburridas sin interacciones.
+Bajo contraste / texto que no se distingue, superficies casi-negras, gradientes, glassmorphism, fondos mesh, orbes brillantes y múltiples acentos saturados. También: componentes desalineados y tablas sin jerarquía. Ver `DESIGN.md` (sección "Banned Practices").
 
 ## Design Principles
 - Clarity over decoration

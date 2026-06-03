@@ -1,85 +1,57 @@
 {% extends "base.html" %}
 
 {% block title %}Flujos de Trabajo{% endblock %}
+{% block breadcrumb %}~/flujos-de-trabajo{% endblock %}
 
 {% block content %}
-<div class="space-y-8">
-    <div class="stagger-1">
-        <h2 class="text-h2 text-on-surface mb-2 tracking-tight">Flujo de Ingestión</h2>
-        <p class="text-on-surface-variant text-sm">Carga, previsualiza y procesa conjuntos de datos crudos.</p>
+<div class="space-y-6">
+    <div class="stagger-1 flex items-center gap-3">
+        <span class="w-11 h-11 rounded-lg bg-white flex items-center justify-center shrink-0 overflow-hidden shadow-sm">
+            <img src="/static/icons/pipelines.png" alt="" class="w-8 h-8 object-contain"/>
+        </span>
+        <div>
+            <h2 class="text-h2 text-on-surface">Flujo de ingestión</h2>
+            <p class="text-on-surface-variant text-sm mt-1">Carga y procesa conjuntos de datos crudos a memoria.</p>
+        </div>
     </div>
 
     <!-- Zona de Drag and Drop -->
-    <section id="drop-zone" class="glass-panel rounded-2xl p-10 flex flex-col items-center justify-center border-dashed hover:border-primary transition-all duration-300 cursor-pointer group relative stagger-2">
-        <div class="w-16 h-16 bg-white/50 border border-white/80 rounded-2xl flex items-center justify-center mb-6 shadow-sm group-hover:scale-110 group-hover:bg-gradient-to-br group-hover:from-[#0EA5E9]/20 group-hover:to-[#10B981]/20 transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]">
-            <span class="material-symbols-outlined text-[32px] text-primary group-hover:text-primary-hover transition-colors">cloud_upload</span>
+    <section id="drop-zone" class="panel rounded-lg p-10 flex flex-col items-center justify-center border-dashed border-line-strong hover:border-primary transition-colors cursor-pointer group stagger-2">
+        <div class="w-12 h-12 rounded-lg border border-border-glass bg-surface-2 flex items-center justify-center mb-5 group-hover:border-primary/40 transition-colors">
+            <span class="material-symbols-outlined text-[26px] text-on-surface-dim group-hover:text-primary transition-colors">cloud_upload</span>
         </div>
-        
-        <h3 class="text-h3 text-on-surface mb-2 font-semibold">Arrastra y Suelta tu Archivo</h3>
-        <p class="text-sm text-on-surface-variant mb-8 text-center max-w-md">Suelta tus archivos aquí o haz clic para explorar en tu equipo.</p>
-        
-        <div class="flex flex-col sm:flex-row gap-4 items-center">
-            <!-- Botón funcional asociado al input -->
-            <input type="file" id="file-upload" class="hidden" accept=".csv,.tsv,.json" />
-            <label for="file-upload" class="cursor-pointer btn-glass-primary px-6 py-3 rounded-full font-semibold relative z-10 flex items-center gap-2 text-sm">
-                <span class="material-symbols-outlined text-[18px]">upload</span>
-                Seleccionar Archivo
-            </label>
-            
-            <div class="flex gap-2 sm:ml-4 sm:border-l border-border-glass sm:pl-4">
-                <span class="px-3 py-1 bg-white/40 text-on-surface-variant rounded-md text-xs font-bold tracking-wider border border-white/60 shadow-sm">.CSV</span>
-                <span class="px-3 py-1 bg-white/40 text-on-surface-variant rounded-md text-xs font-bold tracking-wider border border-white/60 shadow-sm">.TSV</span>
-                <span class="px-3 py-1 bg-white/40 text-on-surface-variant rounded-md text-xs font-bold tracking-wider border border-white/60 shadow-sm">.JSON</span>
-            </div>
-        </div>
-    </section>
 
-    <!-- Previsualización -->
-    <section class="glass-panel rounded-2xl overflow-hidden flex flex-col stagger-3">
-        <div class="px-6 py-4 border-b border-border-glass bg-white/30 flex justify-between items-center">
-            <h3 class="text-h4 text-on-surface font-semibold flex items-center gap-3">
-                <div class="w-8 h-8 bg-white/50 rounded-lg flex items-center justify-center shadow-sm border border-white/60">
-                    <span class="material-symbols-outlined text-primary text-[18px]">visibility</span>
-                </div>
-                Data Preview
-            </h3>
-            <div class="flex items-center gap-2 bg-white/40 px-3 py-1.5 rounded-lg border border-white/60 shadow-sm">
-                <span class="material-symbols-outlined text-[16px] text-primary">description</span>
-                <span id="preview-filename" class="font-mono text-sm text-on-surface font-semibold">Ningún archivo</span>
+        <h3 class="text-base font-semibold text-on-surface mb-1.5">Arrastra y suelta tu archivo</h3>
+        <p class="text-sm text-on-surface-variant mb-6 text-center max-w-md">Suelta tus archivos aquí o selecciónalos desde tu equipo.</p>
+
+        <div class="flex flex-col sm:flex-row gap-4 items-center">
+            <input type="file" id="file-upload" class="hidden" accept=".csv,.tsv,.json" />
+            <label for="file-upload" class="cursor-pointer btn-primary px-5 py-2.5 rounded-md relative z-10 flex items-center gap-2 text-sm">
+                <span class="material-symbols-outlined text-[18px]">upload</span>
+                Seleccionar archivo
+            </label>
+
+            <div class="flex gap-2 sm:ml-2 sm:border-l border-border-glass sm:pl-4">
+                <span class="px-2 py-1 text-on-surface-dim rounded text-[11px] font-mono border border-border-glass bg-surface-2">.csv</span>
+                <span class="px-2 py-1 text-on-surface-dim rounded text-[11px] font-mono border border-border-glass bg-surface-2">.tsv</span>
+                <span class="px-2 py-1 text-on-surface-dim rounded text-[11px] font-mono border border-border-glass bg-surface-2">.json</span>
             </div>
-        </div>
-        
-        <div class="overflow-x-auto min-h-[200px] flex flex-col">
-            <table class="w-full text-left border-collapse">
-                <thead id="preview-head" class="bg-white/20 backdrop-blur-md text-xs font-bold text-on-surface-variant uppercase tracking-wider border-b border-border-glass">
-                    <tr><th class="px-6 py-4 text-center">Selecciona un archivo para previsualizar</th></tr>
-                </thead>
-                <tbody id="preview-body" class="font-mono text-sm text-on-surface divide-y divide-border-glass">
-                    <!-- Renderizado por JS -->
-                </tbody>
-            </table>
-        </div>
-        
-        <div class="px-6 py-3 border-t border-border-glass bg-white/20 text-right">
-            <span id="preview-footer" class="text-sm font-semibold text-on-surface-variant">Filas mostradas: 0</span>
         </div>
     </section>
 
     <!-- Archivos Cargados -->
-    <section class="glass-panel rounded-2xl overflow-hidden flex flex-col stagger-4">
-        <div class="px-6 py-4 border-b border-border-glass bg-white/30 flex justify-between items-center">
-            <h3 class="text-h4 text-on-surface font-semibold flex items-center gap-3">
-                <div class="w-8 h-8 bg-white/50 rounded-lg flex items-center justify-center shadow-sm border border-white/60">
-                    <span class="material-symbols-outlined text-primary text-[18px]">inventory_2</span>
-                </div>
-                Archivos Cargados a Memoria
+    <section class="panel rounded-lg overflow-hidden flex flex-col stagger-4">
+        <div class="px-5 py-3.5 border-b border-border-glass flex justify-between items-center">
+            <h3 class="text-sm font-semibold text-on-surface flex items-center gap-2.5">
+                <span class="material-symbols-outlined text-on-surface-dim text-[18px]">inventory_2</span>
+                Archivos en memoria
             </h3>
-            <button onclick="loadLoadedFiles()" class="w-8 h-8 flex items-center justify-center text-on-surface-variant hover:text-primary rounded-full hover:bg-white/50 transition-all duration-300 active:scale-95 border border-transparent hover:border-white/50" aria-label="Actualizar">
-                <span class="material-symbols-outlined text-[18px] transition-transform duration-500 hover:rotate-180">refresh</span>
+            <button onclick="loadLoadedFiles()" class="w-7 h-7 flex items-center justify-center text-on-surface-dim hover:text-on-surface rounded-md hover:bg-white/[0.04] transition-colors active:scale-95" aria-label="Actualizar">
+                <span class="material-symbols-outlined text-[18px]">refresh</span>
             </button>
         </div>
-        
-        <div id="loaded-files-grid" class="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 min-h-[150px]">
+
+        <div id="loaded-files-grid" class="p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 min-h-[150px]">
             <!-- Renderizado por JS -->
         </div>
     </section>
@@ -90,45 +62,42 @@
 <script>
     const fileUpload = document.getElementById('file-upload');
     const dropZone = document.getElementById('drop-zone');
-    
-    // Drag and drop event listeners
+
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
         dropZone.addEventListener(eventName, preventDefaults, false);
     });
-    
+
     function preventDefaults(e) {
         e.preventDefault();
         e.stopPropagation();
     }
-    
+
     ['dragenter', 'dragover'].forEach(eventName => {
         dropZone.addEventListener(eventName, highlight, false);
     });
-    
+
     ['dragleave', 'drop'].forEach(eventName => {
         dropZone.addEventListener(eventName, unhighlight, false);
     });
-    
+
     function highlight(e) {
         dropZone.classList.add('border-primary');
-        dropZone.classList.add('bg-white/50');
-        dropZone.style.transform = 'scale(1.01)';
+        dropZone.classList.add('bg-white/[0.04]');
     }
-    
+
     function unhighlight(e) {
         dropZone.classList.remove('border-primary');
-        dropZone.classList.remove('bg-white/50');
-        dropZone.style.transform = 'scale(1)';
+        dropZone.classList.remove('bg-white/[0.04]');
     }
-    
+
     dropZone.addEventListener('drop', handleDrop, false);
-    
+
     fileUpload.addEventListener('change', function() {
         if (this.files.length > 0) {
             uploadFile(this.files[0]);
         }
     });
-    
+
     function handleDrop(e) {
         const dt = e.dataTransfer;
         const files = dt.files;
@@ -136,41 +105,32 @@
             uploadFile(files[0]);
         }
     }
-    
+
     async function uploadFile(file) {
         const validExtensions = ['.csv', '.tsv', '.json'];
         const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
-        
+
         if (!validExtensions.includes(ext)) {
             if(window.showToast) showToast("Formato no válido. Usa CSV, TSV o JSON", "warning");
             return;
         }
-        
+
         if(window.showToast) showToast(`Subiendo ${file.name}...`, "info");
-        
+
         const formData = new FormData();
         formData.append('file', file);
-        
+
         try {
             const res = await fetch('/api/upload', {
                 method: 'POST',
                 body: formData
             });
             const data = await res.json();
-            
+
             if (res.ok) {
                 if(window.showToast) showToast(`Archivo procesado (${data.rows} filas)`, "success");
                 if(window.updateSourcesCount) updateSourcesCount();
                 loadLoadedFiles();
-                
-                document.getElementById('preview-filename').textContent = file.name;
-                document.getElementById('preview-footer').textContent = `Total de filas procesadas: ${data.rows}`;
-                
-                const thead = document.getElementById('preview-head');
-                const tbody = document.getElementById('preview-body');
-                
-                thead.innerHTML = `<tr><th class="px-6 py-4 text-left font-semibold">Vista previa no disponible en beta, pero el archivo está en memoria.</th></tr>`;
-                tbody.innerHTML = `<tr class="hover:bg-white/40"><td class="px-6 py-4 text-on-surface-variant">Ve a "Estadísticas" o "Machine Learning" para usar este dataset.</td></tr>`;
             } else {
                 if(window.showToast) showToast(data.detail || "Error al subir el archivo", "error");
             }
@@ -178,52 +138,50 @@
             console.error("Upload Error:", error);
             if(window.showToast) showToast("Error de conexión al subir el archivo", "error");
         }
-        
+
         fileUpload.value = '';
     }
-    
+
     async function loadLoadedFiles() {
         const grid = document.getElementById('loaded-files-grid');
-        grid.innerHTML = '<div class="col-span-full py-8 text-center"><span class="material-symbols-outlined animate-spin text-primary text-[32px]">sync</span></div>';
-        
+        grid.innerHTML = '<div class="col-span-full py-8 text-center"><span class="material-symbols-outlined animate-spin text-on-surface-dim text-[28px]">progress_activity</span></div>';
+
         if(!window.safeFetch) return;
 
         const res = await safeFetch('/api/sources');
-        
+
         grid.innerHTML = '';
-        
+
         if (!res.ok || !res.data.sources || res.data.sources.length === 0) {
             if(window.createEmptyState) {
                 grid.appendChild(createEmptyState(
-                    'inventory_2', 
-                    'No hay fuentes cargadas', 
+                    'inventory_2',
+                    'No hay fuentes cargadas',
                     'Sube un archivo en la sección de arriba para comenzar a explorar tus datos.',
                     null, null
                 ));
             }
             return;
         }
-        
+
         res.data.sources.forEach((src, idx) => {
             let icon = 'description';
-            
             if (src.type === 'SQL') { icon = 'storage'; }
             else if (src.type === 'NoSQL') { icon = 'data_object'; }
-            
+
             const card = document.createElement('div');
-            card.className = 'glass-panel glass-panel-hover rounded-2xl p-5 flex flex-col gap-4 group cursor-pointer';
-            // Animación de entrada en cascada basada en el index
-            card.style.animation = `fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) ${idx * 0.1}s both`;
-            
+            card.className = 'panel panel-hover rounded-lg p-4 flex flex-col gap-3 group cursor-pointer';
+            card.style.animation = `fadeUp 0.4s ease-out ${idx * 0.04}s both`;
+
             card.innerHTML = `
             <div class="flex justify-between items-start">
-                <div class="flex gap-4 min-w-0">
-                    <div class="w-12 h-12 bg-white/50 rounded-xl flex items-center justify-center border border-white/60 shrink-0 group-hover:bg-gradient-to-br group-hover:from-[#0EA5E9] group-hover:to-[#10B981] transition-all duration-300 shadow-sm group-hover:shadow-[0_4px_12px_rgba(14,165,233,0.3)] group-hover:border-transparent">
-                        <span class="material-symbols-outlined text-[24px] text-primary group-hover:text-white transition-colors duration-300">${icon}</span>
+                <div class="flex gap-3 min-w-0">
+                    <div class="w-10 h-10 rounded-md border border-border-glass bg-surface-2 flex items-center justify-center shrink-0">
+                        <span class="material-symbols-outlined text-[20px] text-on-surface-dim group-hover:text-primary transition-colors">${icon}</span>
                     </div>
-                    <div class="min-w-0 pt-1">
-                        <h5 class="font-bold text-[15px] text-on-surface truncate pr-2" title="${src.name}">${src.name}</h5>
-                        <p class="text-xs font-mono font-semibold text-on-surface-variant mt-1.5">${src.size} <span class="text-border-glass mx-1">·</span> ${src.cols} Cols</p>
+                    <div class="min-w-0 pt-0.5">
+                        <h5 class="font-medium text-sm text-on-surface truncate pr-2" title="${src.name}">${src.name}</h5>
+                        <p class="text-xs font-mono text-on-surface-dim mt-1 tnum">${src.size} <span class="text-on-surface-dim/50 mx-1">·</span> ${src.cols} cols</p>
                     </div>
                 </div>
             </div>
@@ -231,7 +189,7 @@
             grid.appendChild(card);
         });
     }
-    
+
     document.addEventListener('DOMContentLoaded', () => {
         loadLoadedFiles();
     });

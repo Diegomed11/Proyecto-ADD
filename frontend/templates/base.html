@@ -3,141 +3,171 @@
 <head>
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title>APCD - {% block title %}Panel{% endblock %}</title>
-    
-    <!-- Geist Sans & Monospace para UI Premium -->
-    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet"/>
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-    
+    <meta name="description" content="APCD — entorno para ingestión, exploración y modelado de datos."/>
+    <title>APCD · {% block title %}Panel{% endblock %}</title>
+    <link rel="icon" type="image/png" href="/static/icons/favicon.png"/>
+    <link rel="apple-touch-icon" href="/static/icons/favicon.png"/>
+
+    <!-- Geist Sans & Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,300,0,0&display=swap" rel="stylesheet"/>
+
     <!-- Tailwind CSS (CDN) -->
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <script>
     tailwind.config={
-        darkMode: "class",
         theme:{
             fontFamily: {
-                'sans': ['"Geist"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+                'sans': ['"Geist"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
                 'mono': ['"Geist Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
             },
             extend:{
-                /* Paleta Liquid Glass (Ocean Accents) */
                 colors:{
-                    "primary":"#0EA5E9", /* Sky 500 */
-                    "primary-hover":"#0284C7", /* Sky 600 */
-                    "secondary":"#10B981", /* Emerald 500 */
-                    "surface-glass":"rgba(255, 255, 255, 0.65)",
-                    "border-glass":"rgba(255, 255, 255, 0.5)",
-                    "on-surface":"#0F172A", /* Slate 900 */
-                    "on-surface-variant":"#64748B", /* Slate 500 */
-                    "bg-mesh-1":"#F8FAFC", /* Slate 50 */
-                    
-                    /* Spot Pastels para badges */
-                    "error-bg": "#FEE2E2",
-                    "error-text": "#B91C1C",
-                    "success-bg": "#D1FAE5",
-                    "success-text": "#047857",
-                    "warning-bg": "#FEF3C7",
-                    "warning-text": "#B45309",
-                    "info-bg": "#E0F2FE",
-                    "info-text": "#0369A1",
-                    
-                    "background":"#F8FAFC",
+                    /* Acento único: ámbar */
+                    "primary":"#F59E0B",
+                    "primary-hover":"#FBBF24",
+                    "secondary":"#F59E0B",
+                    /* Superficies (oscuro suave, no casi-negro) */
+                    "ink":"#18181B",
+                    "background":"#18181B",
+                    "bg-mesh-1":"#18181B",
+                    "surface":"#1F1F23",
+                    "surface-2":"#2A2A30",
+                    "surface-glass":"#1F1F23",
+                    /* Texto (alto contraste, legible) */
+                    "on-surface":"#EDEDEF",
+                    "on-surface-variant":"#B4B4BC",
+                    "on-surface-dim":"#8B8B95",
+                    /* Bordes visibles */
+                    "border-glass":"#34343C",
+                    "line-strong":"#46464F",
+                    /* Estados semánticos (claros para legibilidad sobre oscuro) */
+                    "error-bg": "#2A1416",
+                    "error-text": "#FCA5A5",
+                    "success-bg": "#0E2A20",
+                    "success-text": "#4ADE80",
+                    "warning-bg": "#2A2110",
+                    "warning-text": "#FBBF24",
+                    "info-bg": "#11212E",
+                    "info-text": "#7DD3FC",
+                },
+                fontSize:{
+                    'display': ['1.875rem', { lineHeight: '1.1', letterSpacing: '-0.025em', fontWeight: '600' }],
+                    'h2': ['1.5rem', { lineHeight: '1.2', letterSpacing: '-0.02em', fontWeight: '600' }],
+                    'h3': ['1.25rem', { lineHeight: '1.3', letterSpacing: '-0.015em', fontWeight: '600' }],
+                    'h4': ['1rem', { lineHeight: '1.4', letterSpacing: '-0.01em', fontWeight: '600' }],
                 },
                 spacing:{
                     "container-padding":"32px",
                     "gutter":"24px",
-                },
-                boxShadow:{
-                    /* Liquid Glass difusa */
-                    'glass': '0 8px 32px -4px rgba(15, 23, 42, 0.04), inset 0 1px 1px rgba(255, 255, 255, 0.8)',
-                    'glass-hover': '0 12px 48px -4px rgba(14, 165, 233, 0.1), inset 0 1px 1px rgba(255, 255, 255, 1)',
                 }
             }
         }
     }
     </script>
     <style>
-        body { 
-            background-color: #F8FAFC;
-            color: #0F172A;
+        :root { color-scheme: dark; }
+        body {
+            background-color: #18181B;
+            color: #EDEDEF;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
-        }
-        
-        /* Mesh Gradient Background */
-        .mesh-bg {
-            background-color: #F8FAFC;
-            background-image: 
-                radial-gradient(at 0% 0%, hsla(200, 100%, 94%, 1) 0px, transparent 50%),
-                radial-gradient(at 100% 0%, hsla(160, 100%, 94%, 1) 0px, transparent 50%),
-                radial-gradient(at 100% 100%, hsla(200, 100%, 94%, 1) 0px, transparent 50%),
-                radial-gradient(at 0% 100%, hsla(160, 100%, 94%, 1) 0px, transparent 50%);
-            background-attachment: fixed;
         }
 
         h1, h2, h3 { text-wrap: balance; }
         p { text-wrap: pretty; }
 
+        .tnum, .font-mono { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 350, 'GRAD' 0, 'opsz' 24; }
+
+        /* Grano muy sutil para romper la planitud */
+        .grain::before {
+            content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+            opacity: 0.02;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        }
+
         *:focus { outline: none; }
         *:focus-visible {
-            outline: 2px solid #0EA5E9;
+            outline: 2px solid #F59E0B;
             outline-offset: 2px;
-            border-radius: 8px;
+            border-radius: 4px;
         }
 
-        /* Glassmorphism Utilities */
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.65);
-            backdrop-filter: blur(24px) saturate(150%);
-            -webkit-backdrop-filter: blur(24px) saturate(150%);
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            box-shadow: 0 8px 32px -4px rgba(15, 23, 42, 0.04), inset 0 1px 1px rgba(255, 255, 255, 0.8);
-            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        /* ── Superficies ─────────────────────────────────────────── */
+        .glass-panel, .panel {
+            background: #1F1F23;
+            border: 1px solid #34343C;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+            transition: border-color 0.2s ease, background-color 0.2s ease;
         }
-        
-        .glass-panel-hover:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 48px -4px rgba(14, 165, 233, 0.1), inset 0 1px 1px rgba(255, 255, 255, 1);
-            background: rgba(255, 255, 255, 0.8);
+        .glass-panel-hover:hover, .panel-hover:hover {
+            border-color: #50505A;
+            background: #25252A;
         }
 
-        /* Primary Button */
-        .btn-glass-primary {
-            background: linear-gradient(135deg, #0EA5E9 0%, #10B981 100%);
-            color: white;
-            border: 1px solid rgba(255,255,255,0.2);
-            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.2), inset 0 1px 1px rgba(255,255,255,0.3);
-            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        /* ── Botones ─────────────────────────────────────────────── */
+        .btn-glass-primary, .btn-primary {
+            background: #F59E0B;
+            color: #1A1206;
+            font-weight: 600;
+            border: 1px solid #F59E0B;
+            transition: background-color 0.15s ease, transform 0.08s ease;
         }
-        .btn-glass-primary:hover {
-            transform: translateY(-1px) scale(1.02);
-            box-shadow: 0 6px 16px rgba(14, 165, 233, 0.3), inset 0 1px 1px rgba(255,255,255,0.4);
+        .btn-glass-primary:hover, .btn-primary:hover { background: #FBBF24; border-color:#FBBF24; }
+        .btn-glass-primary:active, .btn-primary:active { transform: translateY(0.5px); }
+        .btn-glass-primary:disabled, .btn-primary:disabled {
+            opacity: 1; cursor: not-allowed; transform: none;
+            background:#3A3A42; border-color:#3A3A42; color:#8B8B95;
         }
-        .btn-glass-primary:active {
-            transform: translateY(0) scale(0.97);
+
+        .btn-secondary {
+            background: #2A2A30;
+            color: #EDEDEF;
+            border: 1px solid #46464F;
+            font-weight: 500;
+            transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.08s ease;
         }
+        .btn-secondary:hover { background: #33333A; border-color: #5A5A64; }
+        .btn-secondary:active { transform: translateY(0.5px); }
+
+        /* ── Campos de formulario ───────────────────────────────── */
+        .field, .custom-input, .custom-select {
+            background-color: #17171B !important;
+            border: 1px solid #3A3A42 !important;
+            color: #EDEDEF !important;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+        .field::placeholder, .custom-input::placeholder { color: #71717A !important; opacity: 1; }
+        .field:focus, .custom-input:focus, .custom-select:focus {
+            border-color: #F59E0B !important;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(245,158,11,0.18) !important;
+        }
+        .custom-select:disabled, .field:disabled, .custom-input:disabled {
+            background-color: #202024 !important; color: #71717A !important; border-color: #2E2E34 !important; cursor: not-allowed;
+        }
+        .custom-select option { background-color: #1F1F23; color: #EDEDEF; }
+
+        /* ── Tablas ─────────────────────────────────────────────── */
+        .table-row-hover { transition: background-color 0.12s ease; }
+        .table-row-hover:hover { background-color: rgba(255,255,255,0.035); }
 
         .skip-link {
-            position: absolute;
-            top: -100%;
-            left: 16px;
-            z-index: 100;
-            padding: 8px 16px;
-            background: #0EA5E9;
-            color: white;
-            border-radius: 8px;
-            font-weight: 500;
-            transition: top 0.2s;
+            position: absolute; top: -100%; left: 16px; z-index: 100;
+            padding: 8px 16px; background: #F59E0B; color: #1A1206;
+            font-weight: 600; transition: top 0.2s; border-radius: 6px;
         }
         .skip-link:focus { top: 16px; }
 
         /* Skeleton loading */
         .skeleton {
-            background: linear-gradient(90deg, rgba(255,255,255,0.4) 25%, rgba(255,255,255,0.8) 50%, rgba(255,255,255,0.4) 75%);
+            background: linear-gradient(90deg, #2A2A30 25%, #34343C 50%, #2A2A30 75%);
             background-size: 200% 100%;
-            animation: skeleton-shimmer 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-            border-radius: 8px;
-            backdrop-filter: blur(8px);
+            animation: skeleton-shimmer 1.5s ease-in-out infinite;
+            border-radius: 4px;
         }
         @keyframes skeleton-shimmer {
             0% { background-position: 200% 0; }
@@ -153,163 +183,143 @@
             }
         }
 
-        /* Staggered Fade Up Animations */
         @keyframes fadeUp {
-            from { opacity: 0; transform: translateY(20px); }
+            from { opacity: 0; transform: translateY(8px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        .stagger-1 { animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both; }
-        .stagger-2 { animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both; }
-        .stagger-3 { animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both; }
-        .stagger-4 { animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.4s both; }
+        .stagger-1 { animation: fadeUp 0.4s ease-out 0.02s both; }
+        .stagger-2 { animation: fadeUp 0.4s ease-out 0.06s both; }
+        .stagger-3 { animation: fadeUp 0.4s ease-out 0.10s both; }
+        .stagger-4 { animation: fadeUp 0.4s ease-out 0.14s both; }
+        .animate-fade-in { animation: fadeUp 0.3s ease-out both; }
 
-        /* Toast animations */
-        @keyframes toast-in {
-            0% { opacity: 0; transform: translateY(16px) scale(0.95); }
-            100% { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        .animate-toast-in {
-            animation: toast-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-            background: rgba(255, 255, 255, 0.8) !important;
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(255,255,255,0.8) !important;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255,255,255,1) !important;
-            border-radius: 12px !important;
-        }
-        
+        @keyframes toast-in { 0% { opacity: 0; transform: translateY(8px); } 100% { opacity: 1; transform: translateY(0); } }
+        @keyframes toast-out { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(8px); } }
+        .animate-toast-in { animation: toast-in 0.25s ease-out forwards; }
         .toast-progress {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            height: 3px;
-            background-color: currentColor;
-            opacity: 0.3;
+            position: absolute; bottom: 0; left: 0; height: 2px;
+            background-color: currentColor; opacity: 0.5;
             animation: toast-progress-shrink linear forwards;
-            border-bottom-left-radius: 12px;
         }
-        @keyframes toast-progress-shrink {
-            0% { width: 100%; }
-            100% { width: 0%; border-bottom-right-radius: 0; }
-        }
+        @keyframes toast-progress-shrink { 0% { width: 100%; } 100% { width: 0%; } }
+
+        ::-webkit-scrollbar { width: 12px; height: 12px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #3A3A42; border-radius: 6px; border: 3px solid #18181B; }
+        ::-webkit-scrollbar-thumb:hover { background: #4A4A54; }
     </style>
     {% block head %}{% endblock %}
 </head>
-<body class="flex min-h-screen overflow-x-hidden relative font-sans text-on-surface mesh-bg">
-    
+<body class="grain flex min-h-screen overflow-x-hidden relative font-sans text-on-surface bg-ink">
+
     <a href="#contenido-principal" class="skip-link">Saltar al contenido principal</a>
 
-    <!-- Sidebar Navegación -->
-    <nav class="w-[260px] h-screen fixed left-0 top-0 flex flex-col py-8 z-40 hidden md:flex border-r border-white/40 bg-white/30 backdrop-blur-[40px] shadow-[8px_0_32px_-12px_rgba(15,23,42,0.1)] overflow-hidden" aria-label="Navegación principal">
-        
-        <!-- Elementos decorativos Liquid Glass (Orbes) -->
-        <div class="absolute -top-20 -left-20 w-64 h-64 bg-[#0EA5E9]/20 rounded-full blur-3xl mix-blend-multiply pointer-events-none"></div>
-        <div class="absolute top-1/3 -right-20 w-48 h-48 bg-[#10B981]/20 rounded-full blur-3xl mix-blend-multiply pointer-events-none"></div>
-        <div class="absolute -bottom-20 -left-10 w-56 h-56 bg-[#6366F1]/10 rounded-full blur-3xl mix-blend-multiply pointer-events-none"></div>
-        
-        <!-- Contenido Sidebar -->
+    <!-- Sidebar -->
+    <nav class="w-[256px] h-screen fixed left-0 top-0 flex-col py-6 z-40 hidden md:flex border-r border-border-glass bg-[#1B1B1F]" aria-label="Navegación principal">
         <div class="relative z-10 flex flex-col h-full">
-            <!-- Logo -->
-            <div class="px-8 mb-12 flex items-center gap-4 stagger-1">
-                <div class="w-12 h-12 bg-gradient-to-br from-[#0EA5E9] to-[#10B981] rounded-2xl flex items-center justify-center shrink-0 shadow-[0_4px_16px_rgba(14,165,233,0.4)] border border-white/40 relative overflow-hidden group">
-                    <div class="absolute inset-0 bg-white/20 translate-y-[100%] group-hover:translate-y-[0%] transition-transform duration-500 ease-in-out"></div>
-                    <span class="material-symbols-outlined text-white text-[24px] relative z-10 group-hover:scale-110 transition-transform duration-500">analytics</span>
+            <!-- Marca -->
+            <div class="px-6 mb-10 flex items-center gap-3">
+                <div class="w-9 h-9 rounded-md bg-white flex items-center justify-center shrink-0 overflow-hidden shadow-sm">
+                    <img src="/static/icons/app-logo.png" alt="APCD" class="w-7 h-7 object-contain"/>
                 </div>
-                <h1 class="font-bold text-on-surface text-2xl tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-slate-800 to-slate-500">APCD</h1>
+                <div class="leading-none">
+                    <h1 class="font-semibold text-on-surface text-[15px] tracking-tight">APCD</h1>
+                    <p class="text-[10px] text-on-surface-dim font-mono mt-1 tracking-wide">data&nbsp;pipeline</p>
+                </div>
             </div>
-            
+
             <!-- Navegación -->
-            <div class="flex-1 flex flex-col gap-3 px-6 stagger-2">
-                <a href="/" class="group relative flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 overflow-hidden {% if active_tab == 'overview' %}bg-white/80 shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-white/60 text-primary font-bold{% else %}text-on-surface-variant hover:text-on-surface hover:bg-white/50 border border-transparent hover:border-white/40 font-medium{% endif %}">
-                    {% if active_tab == 'overview' %}
-                        <div class="absolute inset-0 bg-gradient-to-r from-[#0EA5E9]/10 to-transparent pointer-events-none"></div>
-                        <div class="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-[#0EA5E9] to-[#10B981] rounded-l-2xl"></div>
-                    {% endif %}
-                    <span class="material-symbols-outlined text-[22px] relative z-10 {% if active_tab == 'overview' %}text-primary{% else %}text-slate-400 group-hover:text-primary transition-colors{% endif %}">dashboard</span>
-                    <span class="text-[15px] relative z-10">Resumen</span>
-                </a>
-                
-                <a href="/databases" class="group relative flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 overflow-hidden {% if active_tab == 'databases' %}bg-white/80 shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-white/60 text-primary font-bold{% else %}text-on-surface-variant hover:text-on-surface hover:bg-white/50 border border-transparent hover:border-white/40 font-medium{% endif %}">
-                    {% if active_tab == 'databases' %}
-                        <div class="absolute inset-0 bg-gradient-to-r from-[#0EA5E9]/10 to-transparent pointer-events-none"></div>
-                        <div class="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-[#0EA5E9] to-[#10B981] rounded-l-2xl"></div>
-                    {% endif %}
-                    <span class="material-symbols-outlined text-[22px] relative z-10 {% if active_tab == 'databases' %}text-primary{% else %}text-slate-400 group-hover:text-primary transition-colors{% endif %}">database</span>
-                    <span class="text-[15px] relative z-10">Bases de Datos</span>
-                </a>
-                
-                <a href="/pipelines" class="group relative flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 overflow-hidden {% if active_tab == 'pipelines' %}bg-white/80 shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-white/60 text-primary font-bold{% else %}text-on-surface-variant hover:text-on-surface hover:bg-white/50 border border-transparent hover:border-white/40 font-medium{% endif %}">
-                    {% if active_tab == 'pipelines' %}
-                        <div class="absolute inset-0 bg-gradient-to-r from-[#0EA5E9]/10 to-transparent pointer-events-none"></div>
-                        <div class="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-[#0EA5E9] to-[#10B981] rounded-l-2xl"></div>
-                    {% endif %}
-                    <span class="material-symbols-outlined text-[22px] relative z-10 {% if active_tab == 'pipelines' %}text-primary{% else %}text-slate-400 group-hover:text-primary transition-colors{% endif %}">account_tree</span>
-                    <span class="text-[15px] relative z-10">Flujos de Trabajo</span>
-                </a>
-                
-                <a href="/statistics" class="group relative flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 overflow-hidden {% if active_tab == 'statistics' %}bg-white/80 shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-white/60 text-primary font-bold{% else %}text-on-surface-variant hover:text-on-surface hover:bg-white/50 border border-transparent hover:border-white/40 font-medium{% endif %}">
-                    {% if active_tab == 'statistics' %}
-                        <div class="absolute inset-0 bg-gradient-to-r from-[#0EA5E9]/10 to-transparent pointer-events-none"></div>
-                        <div class="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-[#0EA5E9] to-[#10B981] rounded-l-2xl"></div>
-                    {% endif %}
-                    <span class="material-symbols-outlined text-[22px] relative z-10 {% if active_tab == 'statistics' %}text-primary{% else %}text-slate-400 group-hover:text-primary transition-colors{% endif %}">monitoring</span>
-                    <span class="text-[15px] relative z-10">Estadísticas</span>
-                </a>
-                
-                <a href="/modeling" class="group relative flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 overflow-hidden {% if active_tab == 'modeling' %}bg-white/80 shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-white/60 text-primary font-bold{% else %}text-on-surface-variant hover:text-on-surface hover:bg-white/50 border border-transparent hover:border-white/40 font-medium{% endif %}">
-                    {% if active_tab == 'modeling' %}
-                        <div class="absolute inset-0 bg-gradient-to-r from-[#0EA5E9]/10 to-transparent pointer-events-none"></div>
-                        <div class="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-[#0EA5E9] to-[#10B981] rounded-l-2xl"></div>
-                    {% endif %}
-                    <span class="material-symbols-outlined text-[22px] relative z-10 {% if active_tab == 'modeling' %}text-primary{% else %}text-slate-400 group-hover:text-primary transition-colors{% endif %}">model_training</span>
-                    <span class="text-[15px] relative z-10">Machine Learning</span>
-                </a>
-                
-                <a href="/web-scraping" class="group relative flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 overflow-hidden {% if active_tab == 'web-scraping' %}bg-white/80 shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-white/60 text-primary font-bold{% else %}text-on-surface-variant hover:text-on-surface hover:bg-white/50 border border-transparent hover:border-white/40 font-medium{% endif %}">
-                    {% if active_tab == 'web-scraping' %}
-                        <div class="absolute inset-0 bg-gradient-to-r from-[#0EA5E9]/10 to-transparent pointer-events-none"></div>
-                        <div class="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-[#0EA5E9] to-[#10B981] rounded-l-2xl"></div>
-                    {% endif %}
-                    <span class="material-symbols-outlined text-[22px] relative z-10 {% if active_tab == 'web-scraping' %}text-primary{% else %}text-slate-400 group-hover:text-primary transition-colors{% endif %}">public</span>
-                    <span class="text-[15px] relative z-10">Extracción Web</span>
-                </a>
-            </div>
-            
-            <!-- Status Indicator -->
-            <div class="px-8 mt-auto mb-4 stagger-3">
-                <div class="bg-white/50 py-3 px-4 rounded-xl flex items-center gap-3 border border-white/60 shadow-[0_4px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_4px_16px_rgba(16,185,129,0.1)] transition-shadow cursor-default">
-                    <span class="relative flex h-3 w-3">
-                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
-                      <span class="relative inline-flex rounded-full h-3 w-3 bg-secondary shadow-[0_0_8px_rgba(16,185,129,0.8)]"></span>
+            <div class="flex-1 flex flex-col gap-0.5 px-3">
+                <p class="px-3 mb-2 text-[10px] font-mono uppercase tracking-[0.15em] text-on-surface-dim">Espacio de trabajo</p>
+
+                <a href="/" class="group relative flex items-center gap-3 pl-4 pr-3 py-2.5 rounded-md text-[14px] transition-colors {% if active_tab == 'overview' %}bg-white/[0.06] text-on-surface font-semibold{% else %}text-on-surface-variant hover:text-on-surface hover:bg-white/[0.04]{% endif %}">
+                    {% if active_tab == 'overview' %}<span class="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 bg-primary rounded-r"></span>{% endif %}
+                    <span class="w-7 h-7 rounded-md bg-white flex items-center justify-center shrink-0 overflow-hidden transition-all {% if active_tab == 'overview' %}ring-1 ring-primary/60{% else %}opacity-90 group-hover:opacity-100{% endif %}">
+                        <img src="/static/icons/overview.png" alt="" class="w-[18px] h-[18px] object-contain"/>
                     </span>
-                    <span class="text-xs text-on-surface font-bold uppercase tracking-wider">Sistema Activo</span>
-                </div>
+                    Resumen
+                </a>
+
+                <a href="/databases" class="group relative flex items-center gap-3 pl-4 pr-3 py-2.5 rounded-md text-[14px] transition-colors {% if active_tab == 'databases' %}bg-white/[0.06] text-on-surface font-semibold{% else %}text-on-surface-variant hover:text-on-surface hover:bg-white/[0.04]{% endif %}">
+                    {% if active_tab == 'databases' %}<span class="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 bg-primary rounded-r"></span>{% endif %}
+                    <span class="w-7 h-7 rounded-md bg-white flex items-center justify-center shrink-0 overflow-hidden transition-all {% if active_tab == 'databases' %}ring-1 ring-primary/60{% else %}opacity-90 group-hover:opacity-100{% endif %}">
+                        <img src="/static/icons/databases.png" alt="" class="w-[18px] h-[18px] object-contain"/>
+                    </span>
+                    Bases de datos
+                </a>
+
+                <a href="/pipelines" class="group relative flex items-center gap-3 pl-4 pr-3 py-2.5 rounded-md text-[14px] transition-colors {% if active_tab == 'pipelines' %}bg-white/[0.06] text-on-surface font-semibold{% else %}text-on-surface-variant hover:text-on-surface hover:bg-white/[0.04]{% endif %}">
+                    {% if active_tab == 'pipelines' %}<span class="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 bg-primary rounded-r"></span>{% endif %}
+                    <span class="w-7 h-7 rounded-md bg-white flex items-center justify-center shrink-0 overflow-hidden transition-all {% if active_tab == 'pipelines' %}ring-1 ring-primary/60{% else %}opacity-90 group-hover:opacity-100{% endif %}">
+                        <img src="/static/icons/pipelines.png" alt="" class="w-[18px] h-[18px] object-contain"/>
+                    </span>
+                    Flujos de trabajo
+                </a>
+
+                <a href="/sql-editor" class="group relative flex items-center gap-3 pl-4 pr-3 py-2.5 rounded-md text-[14px] transition-colors {% if active_tab == 'sql-editor' %}bg-white/[0.06] text-on-surface font-semibold{% else %}text-on-surface-variant hover:text-on-surface hover:bg-white/[0.04]{% endif %}">
+                    {% if active_tab == 'sql-editor' %}<span class="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 bg-primary rounded-r"></span>{% endif %}
+                    <span class="w-7 h-7 rounded-md bg-white flex items-center justify-center shrink-0 overflow-hidden transition-all {% if active_tab == 'sql-editor' %}ring-1 ring-primary/60{% else %}opacity-90 group-hover:opacity-100{% endif %}">
+                        <img src="/static/icons/sql-editor.png" alt="" class="w-[18px] h-[18px] object-contain"/>
+                    </span>
+                    Editor SQL
+                </a>
+
+                <a href="/statistics" class="group relative flex items-center gap-3 pl-4 pr-3 py-2.5 rounded-md text-[14px] transition-colors {% if active_tab == 'statistics' %}bg-white/[0.06] text-on-surface font-semibold{% else %}text-on-surface-variant hover:text-on-surface hover:bg-white/[0.04]{% endif %}">
+                    {% if active_tab == 'statistics' %}<span class="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 bg-primary rounded-r"></span>{% endif %}
+                    <span class="w-7 h-7 rounded-md bg-white flex items-center justify-center shrink-0 overflow-hidden transition-all {% if active_tab == 'statistics' %}ring-1 ring-primary/60{% else %}opacity-90 group-hover:opacity-100{% endif %}">
+                        <img src="/static/icons/statistics.png" alt="" class="w-[18px] h-[18px] object-contain"/>
+                    </span>
+                    Estadísticas
+                </a>
+
+                <a href="/modeling" class="group relative flex items-center gap-3 pl-4 pr-3 py-2.5 rounded-md text-[14px] transition-colors {% if active_tab == 'modeling' %}bg-white/[0.06] text-on-surface font-semibold{% else %}text-on-surface-variant hover:text-on-surface hover:bg-white/[0.04]{% endif %}">
+                    {% if active_tab == 'modeling' %}<span class="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 bg-primary rounded-r"></span>{% endif %}
+                    <span class="w-7 h-7 rounded-md bg-white flex items-center justify-center shrink-0 overflow-hidden transition-all {% if active_tab == 'modeling' %}ring-1 ring-primary/60{% else %}opacity-90 group-hover:opacity-100{% endif %}">
+                        <img src="/static/icons/modeling.png" alt="" class="w-[18px] h-[18px] object-contain"/>
+                    </span>
+                    Machine Learning
+                </a>
+
+                <a href="/web-scraping" class="group relative flex items-center gap-3 pl-4 pr-3 py-2.5 rounded-md text-[14px] transition-colors {% if active_tab == 'web-scraping' %}bg-white/[0.06] text-on-surface font-semibold{% else %}text-on-surface-variant hover:text-on-surface hover:bg-white/[0.04]{% endif %}">
+                    {% if active_tab == 'web-scraping' %}<span class="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 bg-primary rounded-r"></span>{% endif %}
+                    <span class="w-7 h-7 rounded-md bg-white flex items-center justify-center shrink-0 overflow-hidden transition-all {% if active_tab == 'web-scraping' %}ring-1 ring-primary/60{% else %}opacity-90 group-hover:opacity-100{% endif %}">
+                        <img src="/static/icons/web-scraping.png" alt="" class="w-[18px] h-[18px] object-contain"/>
+                    </span>
+                    Web Scraping
+                </a>
             </div>
         </div>
     </nav>
 
-    <!-- Contenido Principal -->
-    <div class="md:ml-[240px] flex-1 flex flex-col min-h-screen">
-        
+    <!-- Contenido principal -->
+    <div class="md:ml-[256px] flex-1 flex flex-col min-h-screen relative z-10">
+
         <!-- Header -->
-        <header class="glass-panel sticky top-0 z-30 h-16 px-8 flex justify-between items-center border-x-0 border-t-0 rounded-none bg-white/40">
-            <div class="flex items-center gap-2"></div>
-            <div class="flex items-center gap-4">
-                <div class="hidden md:flex items-center gap-2 bg-white/60 text-primary px-4 py-1.5 rounded-full text-xs font-semibold border border-white/80 shadow-sm">
-                    <span id="sources-count-badge">Fuentes: 0</span>
+        <header class="sticky top-0 z-30 h-14 px-6 md:px-8 flex justify-between items-center border-b border-border-glass bg-[#18181B]/85 backdrop-blur-sm">
+            <div class="flex items-center gap-2 md:hidden">
+                <span class="w-6 h-6 rounded bg-white flex items-center justify-center overflow-hidden shrink-0">
+                    <img src="/static/icons/app-logo.png" alt="APCD" class="w-5 h-5 object-contain"/>
+                </span>
+                <span class="font-semibold text-on-surface text-sm tracking-tight">APCD</span>
+            </div>
+            <div class="hidden md:block text-[12px] text-on-surface-dim font-mono">{% block breadcrumb %}{% endblock %}</div>
+            <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2 text-[12px] font-mono text-on-surface-variant border border-border-glass rounded-md px-3 py-1.5 bg-surface">
+                    <span class="w-1.5 h-1.5 rounded-full bg-primary shrink-0"></span>
+                    <span id="sources-count-badge">fuentes: 0</span>
                 </div>
             </div>
         </header>
-        
+
         <!-- Canvas -->
-        <main id="contenido-principal" class="p-8 max-w-[1200px] w-full mx-auto">
+        <main id="contenido-principal" class="p-6 md:p-8 max-w-[1280px] w-full mx-auto flex-1 flex flex-col">
             {% block content %}{% endblock %}
         </main>
     </div>
 
-    <!-- Contenedor Toasts -->
+    <!-- Toasts -->
     <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-3 pointer-events-none" aria-live="polite"></div>
 
-    <!-- Script Principal -->
     <script src="/static/js/app.js"></script>
     {% block scripts %}{% endblock %}
 </body>

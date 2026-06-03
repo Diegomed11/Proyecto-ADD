@@ -1,7 +1,7 @@
 import os
 import json
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from pydantic import BaseModel
 import pandas as pd
 
@@ -16,6 +16,9 @@ router = APIRouter()
 _fuentes: Dict[str, pd.DataFrame] = {}
 _config_pg = None
 _cargador = CargadorDatos()
+
+# Texto de la última página extraída (lo usan los modelos de NLP de la pestaña web)
+_scrape_cache: Dict[str, Any] = {"url": None, "texto": "", "html_excerpt": ""}
 
 class PGConnection(BaseModel):
     host: str
@@ -45,7 +48,8 @@ async def get_sources():
         if nombre.endswith(".tsv"): tipo = "TSV"
         elif nombre.endswith(".json"): tipo = "JSON"
         elif nombre.startswith("PG:"): tipo = "SQL"
-        elif nombre.startswith("NoSQL:"): tipo = "NoSQL"
+        elif nombre.startswith("Query:"): tipo = "SQL"
+        elif nombre.startswith(("NoSQL:", "Mongo:")): tipo = "NoSQL"
         elif nombre.startswith("Web:"): tipo = "Web"
 
         sources_info.append({
@@ -127,6 +131,47 @@ async def get_schema(table_name: str):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+class QueryRequest(BaseModel):
+    sql: str
+
+@router.post("/database/query")
+async def run_query(req: QueryRequest):
+    """Ejecuta una consulta SQL contra la base PostgreSQL conectada."""
+    if not _config_pg:
+        raise HTTPException(status_code=400, detail="No hay conexión activa a PostgreSQL. Conéctate en la pestaña Bases de datos.")
+    sql = (req.sql or "").strip()
+    if not sql:
+        raise HTTPException(status_code=400, detail="Escribe una consulta SQL.")
+    try:
+        resultado = _cargador.ejecutar_consulta(_config_pg, sql)
+        return {"status": "success", **resultado}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+class QuerySaveRequest(BaseModel):
+    sql: str
+    nombre: Optional[str] = None
+
+@router.post("/database/query/save")
+async def save_query(req: QuerySaveRequest):
+    """Ejecuta un SELECT y guarda el resultado en memoria como fuente reutilizable."""
+    if not _config_pg:
+        raise HTTPException(status_code=400, detail="No hay conexión activa a PostgreSQL.")
+    sql = (req.sql or "").strip()
+    if not sql:
+        raise HTTPException(status_code=400, detail="Escribe una consulta SQL.")
+    try:
+        df = _cargador.consulta_a_dataframe(_config_pg, sql)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Solo se pueden guardar consultas SELECT válidas: {e}")
+    if df.shape[1] == 0:
+        raise HTTPException(status_code=400, detail="La consulta no devolvió columnas para guardar.")
+
+    base = (req.nombre or "").strip() or f"resultado_{len(_fuentes) + 1}"
+    nombre = base if base.startswith("Query:") else f"Query:{base}"
+    _fuentes[nombre] = df
+    return {"status": "success", "nombre": nombre, "rows": len(df), "cols": df.shape[1]}
 
 @router.post("/database/load/{table_name}")
 async def load_table(table_name: str):
@@ -252,8 +297,13 @@ async def run_scraping(req: ScrapeRequest):
         scraper.establecer_url(req.url)
         extracto = scraper.obtener_extracto_html(1500)
         tablas = scraper.extraer_tablas()
-        nlp_resultado = scraper.extraer_texto_y_sentimiento()
-        
+
+        # Cachear el texto limpio para los modelos de NLP (pestaña de análisis)
+        texto = scraper.obtener_texto_limpio(4000)
+        _scrape_cache["url"] = req.url
+        _scrape_cache["texto"] = texto
+        _scrape_cache["html_excerpt"] = extracto
+
         tablas_validas = []
         for i, t in enumerate(tablas):
             if len(t) >= 3 and len(t.columns) >= 2:
@@ -284,50 +334,97 @@ async def run_scraping(req: ScrapeRequest):
             "saved_source": saved_name,
             "preview_cols": cols,
             "preview_data": preview_data,
-            "nlp": nlp_resultado
+            "texto_chars": len(texto)
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# ── Modelos de NLP (Transformers / BERT) sobre la página extraída ──────
+
+@router.get("/nlp/catalog")
+async def nlp_catalog():
+    """Catálogo de modelos de NLP disponibles para el menú del frontend."""
+    from src.nlp_modelos import MODELOS_NLP
+    return {"status": "success", "modelos": MODELOS_NLP}
+
+class NlpRequest(BaseModel):
+    tarea: str
+    opciones: Optional[Dict[str, Any]] = None
+
+@router.post("/nlp/analyze")
+async def nlp_analyze(req: NlpRequest):
+    """Ejecuta el modelo transformer elegido sobre el texto de la última página extraída."""
+    texto = _scrape_cache.get("texto", "")
+    if not texto:
+        raise HTTPException(
+            status_code=400,
+            detail="Primero extrae una página en la sección de arriba."
+        )
+
+    from src import nlp_modelos
+    try:
+        resultado = nlp_modelos.analizar(req.tarea, texto, req.opciones or {})
+        return {
+            "status": "success",
+            "modelo": nlp_modelos.MODELOS_NLP[req.tarea]["nombre"],
+            "url": _scrape_cache.get("url"),
+            "resultado": resultado,
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error en el análisis NLP: {e}")
+
+@router.get("/models/catalog")
+async def get_model_catalog():
+    """Devuelve el catálogo de modelos disponibles para el menú del frontend."""
+    from src.modelado import Modelador
+    return {"status": "success", "modelos": Modelador.MODELOS}
+
 @router.get("/models/features/{source_name:path}")
 async def get_model_features(source_name: str):
-    """Devuelve las columnas numéricas disponibles para modelado."""
+    """Devuelve las columnas disponibles (numéricas y categóricas) para modelado."""
     if source_name not in _fuentes:
         raise HTTPException(status_code=404, detail="Fuente no encontrada")
-    
+
     df = _fuentes[source_name]
     from src.preprocesamiento import Preprocesador
     prep = Preprocesador(df)
     tipos = prep.detectar_tipos_columna()
-    
-    return {"status": "success", "numericas": tipos.get("numericas", [])}
+
+    numericas = tipos.get("numericas", [])
+    categoricas = tipos.get("categoricas", [])
+
+    return {
+        "status": "success",
+        "numericas": numericas,
+        "categoricas": categoricas,
+        "todas": numericas + categoricas,
+        "n_filas": int(len(df)),
+    }
 
 class TrainRequest(BaseModel):
     source: str
-    col_x: str
-    col_y: str
+    modelo: str = "linear"
+    features: List[str] = []
+    target: Optional[str] = None
+    params: Optional[Dict[str, Any]] = None
 
 @router.post("/models/train")
 async def train_model(req: TrainRequest):
-    """Entrena un modelo de regresión lineal simple usando Scikit-Learn."""
+    """Entrena el modelo de ML elegido (lineal, logística, árbol o k-means)."""
     if req.source not in _fuentes:
         raise HTTPException(status_code=404, detail="Fuente no encontrada")
-        
+
     df = _fuentes[req.source]
     from src.modelado import Modelador
     modelador = Modelador(df)
-    
+
     try:
-        modelador.entrenar_regresion_lineal(req.col_x, req.col_y)
-        coefs = modelador.obtener_coeficientes()
-        
-        from sklearn.metrics import r2_score
-        y_true = modelador.obtener_valores_reales()
-        y_pred = modelador.obtener_predicciones()
-        r2 = r2_score(y_true, y_pred)
-        
-        coefs["r2"] = float(r2)
-        
-        return {"status": "success", "metrics": coefs}
-    except Exception as e:
+        resultado = modelador.entrenar_ml(req.modelo, req.features, req.target, req.params or {})
+        return {"status": "success", "resultado": resultado}
+    except ValueError as e:
+        # Errores de validación / datos insuficientes → 400 con mensaje claro
         raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al entrenar el modelo: {e}")

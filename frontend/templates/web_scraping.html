@@ -1,227 +1,364 @@
 {% extends "base.html" %}
 
 {% block title %}Web Scraping{% endblock %}
-
-{% block head %}
-<style>
-/* Estilos Glass Locales */
-.custom-input { 
-    background-color: rgba(255, 255, 255, 0.4); 
-    border: 1px solid rgba(255, 255, 255, 0.6); 
-    color: #0F172A; 
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
-}
-.custom-input:focus { 
-    background-color: rgba(255, 255, 255, 0.8);
-    border-color: #0EA5E9; 
-    outline: none; 
-    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2), inset 0 2px 4px rgba(0,0,0,0.02); 
-}
-.table-row-hover { transition: all 0.2s ease; }
-.table-row-hover:hover { background-color: rgba(255,255,255,0.5); }
-</style>
-{% endblock %}
+{% block breadcrumb %}~/web-scraping{% endblock %}
 
 {% block content %}
-<div class="space-y-8">
-    <div class="mb-6 stagger-1">
-        <h2 class="text-h2 text-on-surface mb-2 tracking-tight flex items-center gap-3">
-            <div class="w-10 h-10 bg-gradient-to-br from-[#0EA5E9] to-[#10B981] rounded-xl flex items-center justify-center shadow-md">
-                <span class="material-symbols-outlined text-white text-[24px]">public</span>
-            </div>
-            Extracción Web & NLP
-        </h2>
-        <p class="text-on-surface-variant text-sm font-medium">Extrae tablas estructuradas y analiza el sentimiento del texto (Deep Learning) desde cualquier sitio web.</p>
+<div class="space-y-6">
+    <div class="stagger-1 flex items-center gap-3">
+        <span class="w-11 h-11 rounded-lg bg-white flex items-center justify-center shrink-0 overflow-hidden shadow-sm">
+            <img src="/static/icons/web-scraping.png" alt="" class="w-8 h-8 object-contain"/>
+        </span>
+        <div>
+            <h2 class="text-h2 text-on-surface">Web Scraping</h2>
+            <p class="text-on-surface-variant text-sm mt-1">Extrae tablas de un sitio y analiza su texto con modelos transformer (BERT). Cada modelo rinde mejor con cierto tipo de página.</p>
+        </div>
     </div>
 
-    <!-- Input Section -->
-    <section class="glass-panel rounded-2xl p-8 flex flex-col items-center stagger-2">
-        <div class="w-full max-w-3xl">
-            <label class="block text-xs font-bold text-on-surface-variant mb-2 uppercase tracking-wider">URL de Destino</label>
-            <div class="flex flex-col sm:flex-row gap-4">
+    <!-- ── Zona A: Extracción ────────────────────────────────────── -->
+    <section class="panel rounded-lg p-5 stagger-2">
+        <div class="w-full max-w-3xl mx-auto">
+            <label class="block text-[11px] font-mono text-on-surface-variant mb-2"><span class="text-on-surface-dim">1 ·</span> url de destino</label>
+            <div class="flex flex-col sm:flex-row gap-3">
                 <div class="relative flex-1">
-                    <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-primary text-[20px]">link</span>
-                    <input id="scrape-url" type="text" class="w-full custom-input rounded-xl pl-12 pr-4 py-3 text-sm font-mono font-medium placeholder-slate-400" value="https://en.wikipedia.org/wiki/SpaceX" placeholder="https://example.com/data"/>
+                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-dim text-[18px]">link</span>
+                    <input id="scrape-url" type="text" class="w-full custom-input rounded-md pl-10 pr-3 py-2.5 text-sm font-mono" value="https://en.wikipedia.org/wiki/SpaceX" placeholder="https://example.com/articulo"/>
                 </div>
-                <button onclick="runScraping()" class="btn-glass-primary px-8 py-3 rounded-xl font-bold tracking-wide flex items-center justify-center gap-2 whitespace-nowrap">
-                    <span class="material-symbols-outlined text-[18px]">search</span>
-                    Extraer Datos
+                <button onclick="runScraping()" class="btn-primary px-6 py-2.5 rounded-md text-sm flex items-center justify-center gap-2 whitespace-nowrap">
+                    <span class="material-symbols-outlined text-[18px]">download</span>
+                    Extraer
                 </button>
             </div>
-            <p class="text-xs text-on-surface-variant mt-4 flex items-center gap-2 font-medium">
-                <span class="material-symbols-outlined text-[16px] text-primary">info</span>
-                El motor escaneará el DOM en busca de estructuras de tabla semánticas.
+            <p class="text-xs text-on-surface-dim mt-3 flex items-center gap-2 font-mono">
+                <span class="material-symbols-outlined text-[15px]">info</span>
+                Se extraen las tablas (se guardan en memoria) y el texto, que luego analizan los modelos.
             </p>
         </div>
     </section>
 
-    <!-- Loading State -->
-    <div id="scrape-loading" class="hidden flex flex-col items-center justify-center h-[200px]">
-        <div class="relative w-16 h-16 flex items-center justify-center">
-            <div class="absolute inset-0 border-4 border-white/40 border-t-primary rounded-full animate-spin"></div>
-            <span class="material-symbols-outlined text-primary text-[24px] absolute">public</span>
-        </div>
-        <p class="text-primary mt-6 text-sm font-bold tracking-wider uppercase">Extrayendo y analizando...</p>
+    <!-- Loading extracción -->
+    <div id="scrape-loading" class="hidden flex flex-col items-center justify-center h-[160px]">
+        <span class="material-symbols-outlined text-primary text-[32px] animate-spin">progress_activity</span>
+        <p class="text-on-surface-variant mt-4 text-xs font-mono uppercase tracking-wider">Extrayendo página…</p>
     </div>
 
-    <!-- Results Area -->
-    <div id="scrape-results" class="grid grid-cols-1 lg:grid-cols-12 gap-6 hidden">
-        <!-- NLP Sentiment Analysis -->
-        <section class="lg:col-span-12 glass-panel rounded-2xl flex flex-col overflow-hidden hidden" id="nlp-results" style="animation: fadeUp 0.6s cubic-bezier(0.16,1,0.3,1) both">
-            <div class="px-6 py-4 border-b border-border-glass bg-white/30 flex items-center gap-3">
-                <div class="w-10 h-10 bg-white/50 rounded-xl flex items-center justify-center shadow-sm border border-white/60">
-                    <span class="material-symbols-outlined text-[#6366F1] text-[20px]">psychology</span>
-                </div>
-                <h4 class="text-h4 font-bold text-on-surface">Análisis de Sentimiento (NLP / Transformers)</h4>
+    <!-- Resultados extracción -->
+    <div id="scrape-results" class="grid grid-cols-1 lg:grid-cols-12 gap-4 hidden">
+        <!-- DOM excerpt -->
+        <section class="lg:col-span-4 panel rounded-lg flex flex-col overflow-hidden h-[420px]" style="animation: fadeUp 0.4s ease-out both">
+            <div class="px-5 py-3.5 border-b border-border-glass flex items-center gap-2.5">
+                <span class="material-symbols-outlined text-on-surface-dim text-[18px]">code</span>
+                <h4 class="text-sm font-semibold text-on-surface">Fragmento DOM</h4>
             </div>
-            <div class="p-6 flex flex-col md:flex-row gap-8">
-                <div class="flex-1 bg-white/40 p-4 rounded-xl border border-white/60 shadow-sm">
-                    <p class="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Clasificación</p>
-                    <p id="nlp-label" class="font-bold text-3xl text-on-surface capitalize">-</p>
-                </div>
-                <div class="flex-1 bg-white/40 p-4 rounded-xl border border-white/60 shadow-sm">
-                    <p class="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Confianza</p>
-                    <p id="nlp-score" class="font-mono font-semibold text-2xl text-primary">-</p>
-                </div>
-                <div class="flex-[3] bg-white/30 rounded-xl border border-white/60 p-5 shadow-inner max-h-32 overflow-y-auto">
-                    <p id="nlp-text" class="text-sm font-medium text-on-surface-variant italic leading-relaxed"></p>
-                </div>
+            <div class="p-4 flex-1 overflow-auto bg-surface-2">
+                <pre class="font-mono text-xs text-on-surface-dim whitespace-pre-wrap"><code id="raw-dom-content"></code></pre>
             </div>
         </section>
 
-        <!-- Raw DOM Excerpt -->
-        <section class="lg:col-span-4 glass-panel rounded-2xl flex flex-col overflow-hidden h-[500px]" style="animation: fadeUp 0.6s cubic-bezier(0.16,1,0.3,1) 0.1s both">
-            <div class="px-6 py-4 border-b border-border-glass bg-white/30 flex items-center gap-3">
-                <div class="w-8 h-8 bg-white/50 rounded-lg flex items-center justify-center shadow-sm border border-white/60">
-                    <span class="material-symbols-outlined text-on-surface-variant text-[18px]">code</span>
+        <!-- Tablas detectadas -->
+        <section class="lg:col-span-8 panel rounded-lg flex flex-col overflow-hidden h-[420px]" style="animation: fadeUp 0.4s ease-out 0.06s both">
+            <div class="px-5 py-3.5 border-b border-border-glass flex justify-between items-center">
+                <div class="flex items-center gap-2.5">
+                    <span class="material-symbols-outlined text-on-surface-dim text-[18px]">table_view</span>
+                    <h4 class="text-sm font-semibold text-on-surface">Tablas detectadas</h4>
                 </div>
-                <h4 class="text-h4 font-bold text-on-surface">DOM Excerpt</h4>
-            </div>
-            <div class="p-4 flex-1 overflow-auto bg-white/20 shadow-inner">
-                <pre class="font-mono text-xs text-on-surface-variant whitespace-pre-wrap"><code id="raw-dom-content"></code></pre>
-            </div>
-        </section>
-
-        <!-- Structured Data Preview -->
-        <section class="lg:col-span-8 glass-panel rounded-2xl flex flex-col overflow-hidden h-[500px]" style="animation: fadeUp 0.6s cubic-bezier(0.16,1,0.3,1) 0.2s both">
-            <div class="px-6 py-4 border-b border-border-glass bg-white/30 flex justify-between items-center">
-                <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 bg-white/50 rounded-lg flex items-center justify-center shadow-sm border border-white/60">
-                        <span class="material-symbols-outlined text-secondary text-[18px]">table_view</span>
-                    </div>
-                    <h4 class="text-h4 font-bold text-on-surface">Estructuras Detectadas</h4>
-                </div>
-                <div class="flex items-center gap-3">
-                    <span id="tables-found-badge" class="text-xs font-bold text-on-surface-variant bg-white/50 border border-white/60 shadow-sm px-3 py-1.5 rounded-lg">0 Tables Found</span>
-                    <span id="saved-source-badge" class="hidden text-xs font-bold px-3 py-1.5 rounded-lg border bg-success-bg/80 text-success-text border-success-text/20 shadow-sm">Saved</span>
+                <div class="flex items-center gap-2">
+                    <span id="tables-found-badge" class="text-[11px] font-mono text-on-surface-dim bg-surface-2 border border-border-glass px-2.5 py-1 rounded">0 tables found</span>
+                    <span id="saved-source-badge" class="hidden text-[11px] font-mono px-2.5 py-1 rounded border bg-success-bg text-success-text border-success-text/25">saved</span>
                 </div>
             </div>
             <div class="flex-1 overflow-auto">
                 <table class="w-full text-left border-collapse whitespace-nowrap">
-                    <thead id="scrape-thead" class="bg-white/20 backdrop-blur-md border-b border-border-glass sticky top-0">
-                        <!-- JS Injected -->
-                    </thead>
-                    <tbody id="scrape-tbody" class="text-sm font-mono divide-y divide-border-glass">
-                        <!-- JS Injected -->
-                    </tbody>
+                    <thead id="scrape-thead" class="border-b border-border-glass sticky top-0 bg-surface"></thead>
+                    <tbody id="scrape-tbody" class="text-sm font-mono divide-y divide-border-glass"></tbody>
                 </table>
             </div>
         </section>
     </div>
+
+    <!-- ── Zona B: Análisis con Transformers ─────────────────────── -->
+    <section id="nlp-section" class="space-y-3 hidden">
+        <div class="flex items-center justify-between px-1">
+            <p class="text-[11px] font-mono text-on-surface-variant"><span class="text-on-surface-dim">2 ·</span> analiza el texto con un modelo transformer</p>
+            <span class="text-[11px] font-mono text-on-surface-dim">primera carga de cada modelo: puede tardar</span>
+        </div>
+
+        <div id="nlp-models-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <!-- Tarjetas inyectadas por JS -->
+        </div>
+
+        <!-- Config + acción -->
+        <div id="nlp-config" class="panel rounded-lg p-5 space-y-4 hidden">
+            <p id="nlp-hint" class="text-xs text-on-surface-variant flex items-center gap-2">
+                <span class="material-symbols-outlined text-[16px] text-primary">tips_and_updates</span>
+                <span id="nlp-hint-text"></span>
+            </p>
+
+            <!-- Opciones específicas -->
+            <div id="nlp-opt-labels-wrap" class="hidden">
+                <label class="block text-[11px] font-mono text-on-surface-variant mb-2">categorías candidatas (separa con comas)</label>
+                <input id="nlp-opt-labels" type="text" class="w-full custom-input rounded-md px-3 py-2 text-sm font-mono" placeholder="deporte, política, tecnología, economía, ciencia"/>
+            </div>
+            <div id="nlp-opt-pregunta-wrap" class="hidden">
+                <label class="block text-[11px] font-mono text-on-surface-variant mb-2">tu pregunta sobre la página</label>
+                <input id="nlp-opt-pregunta" type="text" class="w-full custom-input rounded-md px-3 py-2 text-sm font-mono" placeholder="When was the company founded?"/>
+            </div>
+
+            <button id="nlp-analyze-btn" onclick="analyzeNlp()" class="btn-primary px-5 py-2 rounded-md text-sm flex items-center gap-2 w-full sm:w-auto justify-center">
+                <span class="material-symbols-outlined text-[18px]">neurology</span>
+                Analizar
+            </button>
+        </div>
+
+        <!-- Loading NLP -->
+        <div id="nlp-loading" class="hidden flex flex-col items-center justify-center h-[160px]">
+            <span class="material-symbols-outlined text-primary text-[32px] animate-spin">progress_activity</span>
+            <p id="nlp-loading-text" class="text-on-surface-variant mt-4 text-xs font-mono uppercase tracking-wider">Analizando…</p>
+        </div>
+
+        <!-- Resultado NLP -->
+        <section id="nlp-results" class="panel rounded-lg overflow-hidden hidden">
+            <div class="px-5 py-3.5 border-b border-border-glass flex items-center gap-2.5">
+                <span class="material-symbols-outlined text-on-surface-dim text-[18px]" id="nlp-result-icon">neurology</span>
+                <h4 class="text-sm font-semibold text-on-surface" id="nlp-result-title">Resultado</h4>
+            </div>
+            <div id="nlp-result-body" class="p-5"></div>
+        </section>
+    </section>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
+    // ── Catálogo de modelos NLP ───────────────────────────────────────
+    const NLP_MODELOS = [
+        { id: 'sentiment', nombre: 'Análisis de Sentimiento', modelo: 'DistilBERT · SST-2', icon: 'sentiment_satisfied', tipo: 'Clasificación',
+          que: 'Detecta si el texto es positivo o negativo.',
+          ideal: 'Reseñas, opiniones o comentarios (mejor en inglés).', necesita: null },
+        { id: 'summary', nombre: 'Resumen Automático', modelo: 'DistilBART · CNN', icon: 'summarize', tipo: 'Generación',
+          que: 'Genera un resumen corto del contenido.',
+          ideal: 'Noticias o artículos largos de varios párrafos.', necesita: null },
+        { id: 'zeroshot', nombre: 'Clasificación Temática', modelo: 'BART-large · MNLI', icon: 'label', tipo: 'Zero-shot',
+          que: 'Asigna el texto a categorías que tú defines, sin entrenar.',
+          ideal: 'Noticias/artículos; tú defines las categorías.', necesita: 'labels' },
+        { id: 'ner', nombre: 'Entidades (NER)', modelo: 'BERT-base · CoNLL-03', icon: 'person_pin', tipo: 'Etiquetado',
+          que: 'Extrae personas, lugares y organizaciones del texto.',
+          ideal: 'Noticias o biografías con nombres propios.', necesita: 'ner' },
+        { id: 'qa', nombre: 'Pregunta-Respuesta', modelo: 'DistilBERT · SQuAD', icon: 'quiz', tipo: 'Extractivo',
+          que: 'Busca en la página la respuesta a tu pregunta.',
+          ideal: 'Páginas informativas o Wikipedia; escribe una pregunta.', necesita: 'pregunta' },
+    ];
+
+    const nlpState = { scrapeListo: false, modelo: null };
+
+    document.addEventListener('DOMContentLoaded', renderNlpCards);
+
+    // ── Zona A: Extracción ────────────────────────────────────────────
     async function runScraping() {
         const url = document.getElementById('scrape-url').value;
         if (!url) return;
-        
+
         document.getElementById('scrape-results').classList.add('hidden');
         document.getElementById('scrape-loading').classList.remove('hidden');
-        
+
         try {
             const res = await fetch('/api/scrape', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({url: url})
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url }),
             });
-            
             const data = await res.json();
             document.getElementById('scrape-loading').classList.add('hidden');
-            
-            if(res.ok) {
+
+            if (res.ok) {
                 document.getElementById('scrape-results').classList.remove('hidden');
-                
-                // Set Raw DOM
-                const escapeHtml = (unsafe) => {
-                    return unsafe
-                         .replace(/&/g, "&amp;")
-                         .replace(/</g, "&lt;")
-                         .replace(/>/g, "&gt;")
-                         .replace(/"/g, "&quot;")
-                         .replace(/'/g, "&#039;");
-                 }
-                document.getElementById('raw-dom-content').innerHTML = escapeHtml(data.html_excerpt);
-                
-                // Set badges
-                document.getElementById('tables-found-badge').textContent = `${data.valid_tables} Tables Valid`;
-                
-                if(data.saved_source) {
+
+                const escapeHtml = (u) => u.replace(/&/g, '&amp;').replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+                document.getElementById('raw-dom-content').innerHTML = escapeHtml(data.html_excerpt || '');
+
+                document.getElementById('tables-found-badge').textContent = `${data.valid_tables} tables valid`;
+                if (data.saved_source) {
                     const badge = document.getElementById('saved-source-badge');
                     badge.classList.remove('hidden');
-                    badge.textContent = `Guardado: ${data.saved_source}`;
-                    if(window.updateSourcesCount) updateSourcesCount();
+                    badge.textContent = `guardado: ${data.saved_source}`;
+                    if (window.updateSourcesCount) updateSourcesCount();
                 }
-                
-                // Set NLP Results
-                if (data.nlp && data.nlp.sentimiento !== "N/A") {
-                    document.getElementById('nlp-results').classList.remove('hidden');
-                    document.getElementById('nlp-label').textContent = data.nlp.sentimiento;
-                    document.getElementById('nlp-score').textContent = (data.nlp.score * 100).toFixed(2) + '%';
-                    document.getElementById('nlp-text').textContent = '"' + data.nlp.texto + '"';
-                } else {
-                     document.getElementById('nlp-results').classList.add('hidden');
-                }
-                
-                // Render Table
+
                 const thead = document.getElementById('scrape-thead');
                 const tbody = document.getElementById('scrape-tbody');
-                
-                if(data.preview_cols && data.preview_cols.length > 0) {
-                    let theadHtml = '<tr>';
-                    data.preview_cols.forEach(col => {
-                        theadHtml += `<th class="px-6 py-4 text-xs font-bold text-on-surface-variant uppercase tracking-wider border-r border-border-glass last:border-0">${col}</th>`;
-                    });
-                    theadHtml += '</tr>';
-                    thead.innerHTML = theadHtml;
-                    
-                    let tbodyHtml = '';
-                    data.preview_data.forEach((row) => {
-                        tbodyHtml += `<tr class="table-row-hover">`;
-                        data.preview_cols.forEach((col, idx) => {
-                            const isFirst = idx === 0;
-                            const cellColor = isFirst ? 'text-on-surface font-semibold' : 'text-on-surface-variant';
-                            tbodyHtml += `<td class="px-6 py-3 border-r border-border-glass last:border-0 ${cellColor}">${row[col] !== null ? row[col] : '<span class="text-on-surface-variant/40 italic">null</span>'}</td>`;
-                        });
-                        tbodyHtml += '</tr>';
-                    });
-                    tbody.innerHTML = tbodyHtml;
+                if (data.preview_cols && data.preview_cols.length > 0) {
+                    thead.innerHTML = '<tr>' + data.preview_cols.map(c =>
+                        `<th class="px-5 py-3 text-[11px] font-mono font-medium text-on-surface-dim uppercase tracking-wider border-r border-border-glass last:border-0 text-left">${c}</th>`).join('') + '</tr>';
+                    tbody.innerHTML = data.preview_data.map(row => '<tr class="table-row-hover">' +
+                        data.preview_cols.map((col, i) => {
+                            const color = i === 0 ? 'text-on-surface' : 'text-on-surface-variant';
+                            const v = row[col] !== null && row[col] !== undefined ? row[col] : '<span class="text-on-surface-dim/50 italic">null</span>';
+                            return `<td class="px-5 py-2.5 border-r border-border-glass last:border-0 ${color}">${v}</td>`;
+                        }).join('') + '</tr>').join('');
                 } else {
                     thead.innerHTML = '';
-                    tbody.innerHTML = '<tr><td class="p-8 text-center text-on-surface-variant font-medium">No se encontraron datos estructurados.</td></tr>';
+                    tbody.innerHTML = '<tr><td class="p-8 text-center text-on-surface-variant">No se encontraron tablas estructuradas.</td></tr>';
                 }
-                
-                if(window.showToast) showToast("Extracción completada", "success");
+
+                // Habilitar la zona de análisis NLP
+                nlpState.scrapeListo = true;
+                document.getElementById('nlp-section').classList.remove('hidden');
+                if (data.texto_chars === 0) {
+                    if (window.showToast) showToast('La página tiene poco texto: los modelos pueden no funcionar bien.', 'warning');
+                }
+
+                if (window.showToast) showToast('Extracción completada', 'success');
             } else {
-                if(window.showToast) showToast(data.detail || "Error al extraer", "error");
+                if (window.showToast) showToast(data.detail || 'Error al extraer', 'error');
             }
-            
-        } catch(e) {
+        } catch (e) {
             console.error(e);
             document.getElementById('scrape-loading').classList.add('hidden');
-            if(window.showToast) showToast("Error de conexión", "error");
+            if (window.showToast) showToast('Error de conexión', 'error');
+        }
+    }
+
+    // ── Zona B: Menú de modelos ───────────────────────────────────────
+    function renderNlpCards() {
+        const grid = document.getElementById('nlp-models-grid');
+        grid.innerHTML = NLP_MODELOS.map(m => `
+            <button type="button" data-modelo="${m.id}" onclick="selectNlpModel('${m.id}')"
+                class="nlp-card text-left p-4 rounded-lg border border-border-glass bg-surface hover:border-line-strong transition-colors group">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="material-symbols-outlined text-on-surface-dim group-hover:text-primary transition-colors text-[34px] leading-none nlp-card-icon">${m.icon}</span>
+                    <span class="text-[10px] font-mono uppercase tracking-wider text-on-surface-dim border border-border-glass rounded px-1.5 py-0.5">${m.tipo}</span>
+                </div>
+                <h5 class="text-sm font-semibold text-on-surface mb-0.5">${m.nombre}</h5>
+                <p class="text-[11px] font-mono text-primary mb-2">${m.modelo}</p>
+                <p class="text-xs text-on-surface-variant leading-snug mb-1.5">${m.que}</p>
+                <p class="text-xs text-on-surface-dim leading-snug"><span class="text-on-surface-variant">Página ideal:</span> ${m.ideal}</p>
+            </button>`).join('');
+    }
+
+    function selectNlpModel(id) {
+        nlpState.modelo = id;
+        const meta = NLP_MODELOS.find(m => m.id === id);
+
+        document.querySelectorAll('.nlp-card').forEach(c => {
+            const active = c.dataset.modelo === id;
+            c.classList.toggle('border-primary', active);
+            c.classList.toggle('bg-primary/5', active);
+            c.classList.toggle('border-border-glass', !active);
+            c.querySelector('.nlp-card-icon').classList.toggle('text-primary', active);
+        });
+
+        document.getElementById('nlp-config').classList.remove('hidden');
+        document.getElementById('nlp-hint-text').textContent = `${meta.nombre} — modelo ${meta.modelo}. ${meta.que} Página ideal: ${meta.ideal}`;
+        document.getElementById('nlp-opt-labels-wrap').classList.toggle('hidden', meta.necesita !== 'labels');
+        document.getElementById('nlp-opt-pregunta-wrap').classList.toggle('hidden', meta.necesita !== 'pregunta');
+    }
+
+    // ── Ejecutar análisis ─────────────────────────────────────────────
+    async function analyzeNlp() {
+        if (!nlpState.scrapeListo) { showToast('Primero extrae una página', 'warning'); return; }
+        if (!nlpState.modelo) { showToast('Elige un modelo', 'warning'); return; }
+
+        const meta = NLP_MODELOS.find(m => m.id === nlpState.modelo);
+        const opciones = {};
+        if (meta.necesita === 'labels') {
+            const raw = document.getElementById('nlp-opt-labels').value.trim();
+            if (!raw || raw.split(',').filter(s => s.trim()).length < 2) {
+                showToast('Indica al menos 2 categorías separadas por comas', 'warning'); return;
+            }
+            opciones.labels = raw;
+        }
+        if (meta.necesita === 'pregunta') {
+            const q = document.getElementById('nlp-opt-pregunta').value.trim();
+            if (!q) { showToast('Escribe una pregunta', 'warning'); return; }
+            opciones.pregunta = q;
+        }
+
+        const btn = document.getElementById('nlp-analyze-btn');
+        btn.disabled = true;
+        document.getElementById('nlp-results').classList.add('hidden');
+        document.getElementById('nlp-loading-text').textContent = `Ejecutando ${meta.nombre}…`;
+        document.getElementById('nlp-loading').classList.remove('hidden');
+
+        try {
+            const res = await fetch('/api/nlp/analyze', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tarea: nlpState.modelo, opciones }),
+            });
+            const data = await res.json();
+            document.getElementById('nlp-loading').classList.add('hidden');
+            btn.disabled = false;
+
+            if (res.ok) {
+                renderNlpResult(meta, data.resultado);
+                document.getElementById('nlp-results').classList.remove('hidden');
+                if (window.showToast) showToast('Análisis completado', 'success');
+            } else {
+                if (window.showToast) showToast(data.detail || 'No se pudo analizar', 'error');
+            }
+        } catch (e) {
+            document.getElementById('nlp-loading').classList.add('hidden');
+            btn.disabled = false;
+            if (window.showToast) showToast('Error de red', 'error');
+        }
+    }
+
+    // ── Render de resultados (adaptativo por modelo) ──────────────────
+    function renderNlpResult(meta, r) {
+        document.getElementById('nlp-result-title').textContent = meta.nombre;
+        document.getElementById('nlp-result-icon').textContent = meta.icon;
+        const body = document.getElementById('nlp-result-body');
+
+        if (r.tipo === 'sentiment') {
+            const pos = /pos/i.test(r.label);
+            body.innerHTML = `
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <div class="flex-1 bg-surface-2 border border-border-glass rounded-md p-4">
+                        <p class="text-[11px] font-mono uppercase tracking-wider text-on-surface-dim mb-1.5">Clasificación</p>
+                        <p class="text-2xl font-semibold capitalize ${pos ? 'text-success-text' : 'text-error-text'}">${r.label.toLowerCase()}</p>
+                    </div>
+                    <div class="flex-1 bg-surface-2 border border-border-glass rounded-md p-4">
+                        <p class="text-[11px] font-mono uppercase tracking-wider text-on-surface-dim mb-1.5">Confianza</p>
+                        <p class="text-2xl font-mono font-semibold text-primary tnum">${(r.score * 100).toFixed(1)}%</p>
+                    </div>
+                </div>`;
+
+        } else if (r.tipo === 'summary') {
+            body.innerHTML = `<p class="text-sm text-on-surface leading-relaxed border-l-2 border-primary/40 pl-4">${r.resumen}</p>`;
+
+        } else if (r.tipo === 'zeroshot') {
+            const max = Math.max(...r.items.map(i => i.score), 0.0001);
+            body.innerHTML = '<div class="space-y-3">' + r.items.map(it => `
+                <div>
+                    <div class="flex justify-between text-xs font-mono text-on-surface-variant mb-1.5">
+                        <span class="truncate pr-2">${it.label}</span>
+                        <span class="text-primary tnum">${(it.score * 100).toFixed(1)}%</span>
+                    </div>
+                    <div class="w-full bg-surface-2 rounded-full h-1.5 border border-border-glass overflow-hidden">
+                        <div class="bg-primary h-full rounded-full" style="width:${(it.score / max * 100).toFixed(1)}%"></div>
+                    </div>
+                </div>`).join('') + '</div>';
+
+        } else if (r.tipo === 'ner') {
+            if (!r.grupos.length) { body.innerHTML = '<p class="text-sm text-on-surface-variant">No se detectaron entidades. Prueba con una página de noticias o una biografía.</p>'; return; }
+            body.innerHTML = r.grupos.map(g => `
+                <div class="mb-5 last:mb-0">
+                    <p class="text-[11px] font-mono uppercase tracking-wider text-on-surface-dim mb-2.5">${g.tipo} · ${g.entidades.length}</p>
+                    <div class="flex flex-wrap gap-2">
+                        ${g.entidades.map(e => `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border-glass bg-surface-2 text-xs">
+                            <span class="text-on-surface">${e.texto}</span>
+                            <span class="text-on-surface-dim font-mono tnum">${(e.score * 100).toFixed(0)}%</span></span>`).join('')}
+                    </div>
+                </div>`).join('');
+
+        } else if (r.tipo === 'qa') {
+            body.innerHTML = `
+                <p class="text-xs font-mono text-on-surface-dim mb-3">${r.pregunta}</p>
+                <div class="bg-surface-2 border border-primary/30 rounded-md p-4 flex items-start justify-between gap-4">
+                    <p class="text-lg font-semibold text-on-surface">${r.respuesta || '—'}</p>
+                    <span class="text-xs font-mono text-primary tnum shrink-0 mt-1.5">${(r.score * 100).toFixed(1)}%</span>
+                </div>`;
         }
     }
 </script>

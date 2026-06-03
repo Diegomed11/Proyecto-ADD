@@ -220,6 +220,51 @@ class CargadorDatos:
         conn.close()
         return pks
 
+    def ejecutar_consulta(self, config: dict, sql: str, limite: int = 500) -> dict:
+        """
+        Ejecuta una consulta SQL arbitraria contra la base conectada.
+
+        Para SELECT devuelve columnas y filas (hasta `limite`); para comandos
+        (INSERT/UPDATE/DELETE/DDL) devuelve el número de filas afectadas.
+
+        Returns
+        -------
+        dict
+            {'tipo': 'select', 'columnas': [...], 'filas': [[...]], 'n': int}
+            o {'tipo': 'comando', 'afectadas': int}.
+        """
+        def _safe(v):
+            if v is None or isinstance(v, (int, float, bool, str)):
+                return v
+            return str(v)
+
+        conn = self._conectar_postgres(config)
+        try:
+            cur = conn.cursor()
+            cur.execute(sql)
+            if cur.description:  # hay conjunto de resultados (SELECT, RETURNING, ...)
+                columnas = [d[0] for d in cur.description]
+                filas = [[_safe(c) for c in fila] for fila in cur.fetchmany(limite)]
+                conn.commit()
+                return {"tipo": "select", "columnas": columnas, "filas": filas, "n": len(filas)}
+            else:
+                afectadas = cur.rowcount
+                conn.commit()
+                return {"tipo": "comando", "afectadas": afectadas}
+        finally:
+            conn.close()
+
+    def consulta_a_dataframe(self, config: dict, sql: str) -> pd.DataFrame:
+        """
+        Ejecuta un SELECT y devuelve el resultado como DataFrame con tipos reales
+        (numéricos, fechas, etc.), apto para EDA y modelado.
+        """
+        conn = self._conectar_postgres(config)
+        try:
+            return pd.read_sql_query(sql, conn)
+        finally:
+            conn.close()
+
     def contar_registros(self, config: dict, tabla: str) -> int:
         conn = self._conectar_postgres(config)
         cursor = conn.cursor()
@@ -462,17 +507,38 @@ class WebScraper:
             self._tablas = []
         return self._tablas
 
-    def extraer_texto_y_sentimiento(self) -> dict:
+    def obtener_texto_limpio(self, max_caracteres: int = 4000) -> str:
+        """
+        Extrae el texto plano de los párrafos (<p>) de la página, descartando
+        fragmentos demasiado cortos (menús, pies, etc.).
+
+        Parameters
+        ----------
+        max_caracteres : int
+            Límite superior de longitud del texto devuelto.
+
+        Returns
+        -------
+        str
+            Texto limpio, listo para alimentar a un modelo de NLP.
+        """
         if not self._html_crudo:
             self.obtener_html()
-            
+
         from bs4 import BeautifulSoup
         soup = BeautifulSoup(self._html_crudo, 'html.parser')
         parrafos = soup.find_all('p')
-        texto_limpio = " ".join([p.get_text(strip=True) for p in parrafos if len(p.get_text(strip=True)) > 20])
-        
-        texto_limpio = texto_limpio[:2000]
-        
+        texto_limpio = " ".join(
+            p.get_text(strip=True) for p in parrafos if len(p.get_text(strip=True)) > 20
+        )
+        return texto_limpio[:max_caracteres]
+
+    def extraer_texto_y_sentimiento(self) -> dict:
+        if not self._html_crudo:
+            self.obtener_html()
+
+        texto_limpio = self.obtener_texto_limpio(2000)
+
         if not texto_limpio:
             return {"texto": "", "sentimiento": "N/A", "score": 0.0}
             

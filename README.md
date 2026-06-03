@@ -1,3 +1,13 @@
+---
+title: APCD Data Pipeline
+emoji: 📊
+colorFrom: gray
+colorTo: yellow
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # Aplicación para Análisis de Datos en Python
 
 ![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)

@@ -1,119 +1,115 @@
 {% extends "base.html" %}
 
 {% block title %}Machine Learning{% endblock %}
-
-{% block head %}
-<style>
-.custom-select { 
-    background-color: rgba(255, 255, 255, 0.4); 
-    border: 1px solid rgba(255, 255, 255, 0.6); 
-    color: #0F172A; 
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
-}
-.custom-select:focus { 
-    background-color: rgba(255, 255, 255, 0.8);
-    border-color: #0EA5E9; 
-    outline: none; 
-    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2), inset 0 2px 4px rgba(0,0,0,0.02); 
-}
-.custom-select:disabled {
-    background-color: rgba(255, 255, 255, 0.2);
-    color: #94A3B8;
-    border-color: rgba(255, 255, 255, 0.3);
-}
-.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; filter: grayscale(1); }
-</style>
-{% endblock %}
+{% block breadcrumb %}~/machine-learning{% endblock %}
 
 {% block content %}
-<div class="space-y-8">
-    <div class="mb-6 stagger-1">
-        <h2 class="text-h2 text-on-surface mb-2 tracking-tight flex items-center gap-3">
-            <div class="w-10 h-10 bg-gradient-to-br from-[#0EA5E9] to-[#10B981] rounded-xl flex items-center justify-center shadow-md">
-                <span class="material-symbols-outlined text-white text-[24px]">model_training</span>
-            </div>
-            Machine Learning
-        </h2>
-        <p class="text-on-surface-variant text-sm font-medium">Entrena modelos predictivos seleccionando variables de tus datos en memoria.</p>
+<div class="space-y-6">
+    <div class="stagger-1 flex items-center gap-3">
+        <span class="w-11 h-11 rounded-lg bg-white flex items-center justify-center shrink-0 overflow-hidden shadow-sm">
+            <img src="/static/icons/modeling.png" alt="" class="w-8 h-8 object-contain"/>
+        </span>
+        <div>
+            <h2 class="text-h2 text-on-surface">Machine Learning</h2>
+            <p class="text-on-surface-variant text-sm mt-1">Elige un modelo, las variables de entrada y el objetivo, y entrénalo sobre cualquier dataset en memoria.</p>
+        </div>
     </div>
 
-    <!-- Configuración del Modelo -->
-    <section class="glass-panel rounded-2xl p-8 flex flex-col gap-6 stagger-2">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
-            <div>
-                <label class="block text-xs font-bold text-on-surface-variant mb-2 uppercase tracking-wider">Fuente de Datos</label>
-                <select id="ml-source" class="w-full rounded-xl px-4 py-3 text-sm custom-select font-mono font-medium" onchange="loadFeatures()">
+    <!-- Paso 1: Fuente -->
+    <section class="panel rounded-lg p-5 stagger-2">
+        <div class="flex flex-col sm:flex-row sm:items-end gap-4">
+            <div class="flex-1">
+                <label class="block text-[11px] font-mono text-on-surface-variant mb-2"><span class="text-on-surface-dim">1 ·</span> fuente de datos</label>
+                <select id="ml-source" class="w-full rounded-md px-3 py-2 text-sm custom-select font-mono" onchange="onSourceChange()">
                     <option value="">Selecciona una fuente...</option>
                 </select>
             </div>
-            <div>
-                <label class="block text-xs font-bold text-on-surface-variant mb-2 uppercase tracking-wider">Variable X (Predictora)</label>
-                <select id="ml-x" class="w-full rounded-xl px-4 py-3 text-sm custom-select font-mono font-medium" disabled>
-                </select>
-            </div>
-            <div>
-                <label class="block text-xs font-bold text-on-surface-variant mb-2 uppercase tracking-wider">Variable Y (Objetivo)</label>
-                <select id="ml-y" class="w-full rounded-xl px-4 py-3 text-sm custom-select font-mono font-medium" disabled>
-                </select>
-            </div>
-            <div>
-                <button id="ml-train-btn" onclick="trainModel()" class="w-full btn-glass-primary px-6 py-3 rounded-xl font-bold tracking-wide whitespace-nowrap" disabled>
-                    Entrenar Modelo
-                </button>
-            </div>
+            <p id="ml-source-meta" class="text-xs font-mono text-on-surface-dim pb-2.5 hidden"></p>
         </div>
     </section>
 
-    <!-- Loading State -->
-    <div id="ml-loading" class="hidden flex flex-col items-center justify-center h-[200px]">
-        <div class="relative w-16 h-16 flex items-center justify-center">
-            <div class="absolute inset-0 border-4 border-white/40 border-t-secondary rounded-full animate-spin"></div>
-            <span class="material-symbols-outlined text-secondary text-[24px] absolute">sync</span>
+    <!-- Paso 2: Menú de modelos -->
+    <section id="ml-models-section" class="space-y-3 stagger-3 hidden">
+        <p class="text-[11px] font-mono text-on-surface-variant px-1"><span class="text-on-surface-dim">2 ·</span> elige el modelo</p>
+        <div id="ml-models-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <!-- Tarjetas inyectadas por JS -->
         </div>
-        <p class="text-secondary mt-6 text-sm font-bold tracking-wider uppercase">Entrenando Regresión Lineal...</p>
+    </section>
+
+    <!-- Paso 3: Configuración -->
+    <section id="ml-config-section" class="panel rounded-lg p-5 space-y-5 hidden">
+        <p class="text-[11px] font-mono text-on-surface-variant"><span class="text-on-surface-dim">3 ·</span> configura y aplica</p>
+
+        <!-- Variables de entrada -->
+        <div>
+            <div class="flex items-center justify-between mb-2">
+                <label class="block text-[11px] font-mono text-on-surface-variant">variables de entrada (features)</label>
+                <button type="button" onclick="toggleAllFeatures()" class="text-[11px] font-mono text-on-surface-dim hover:text-primary transition-colors">marcar / limpiar</button>
+            </div>
+            <div id="ml-features" class="flex flex-wrap gap-2">
+                <!-- Chips inyectados por JS -->
+            </div>
+        </div>
+
+        <!-- Objetivo + parámetros -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+            <div id="ml-target-wrap">
+                <label class="block text-[11px] font-mono text-on-surface-variant mb-2">objetivo (target)</label>
+                <select id="ml-target" class="w-full rounded-md px-3 py-2 text-sm custom-select font-mono">
+                    <option value="">Selecciona...</option>
+                </select>
+            </div>
+
+            <div id="ml-param-k" class="hidden">
+                <label class="block text-[11px] font-mono text-on-surface-variant mb-2">grupos (k)</label>
+                <input id="ml-k" type="number" min="2" max="10" value="3" class="w-full rounded-md px-3 py-2 text-sm custom-input font-mono tnum"/>
+            </div>
+
+            <div id="ml-param-depth" class="hidden">
+                <label class="block text-[11px] font-mono text-on-surface-variant mb-2">profundidad máx.</label>
+                <input id="ml-depth" type="number" min="1" max="12" value="4" class="w-full rounded-md px-3 py-2 text-sm custom-input font-mono tnum"/>
+            </div>
+
+            <div>
+                <button id="ml-train-btn" onclick="trainModel()" class="w-full btn-primary px-5 py-2 rounded-md text-sm">
+                    Entrenar modelo
+                </button>
+            </div>
+        </div>
+
+        <p id="ml-config-hint" class="text-xs text-on-surface-dim font-mono"></p>
+    </section>
+
+    <!-- Loading -->
+    <div id="ml-loading" class="hidden flex flex-col items-center justify-center h-[200px]">
+        <span class="material-symbols-outlined text-primary text-[32px] animate-spin">progress_activity</span>
+        <p id="ml-loading-text" class="text-on-surface-variant mt-4 text-xs font-mono uppercase tracking-wider">Entrenando…</p>
     </div>
 
-    <!-- Results Area -->
-    <div id="ml-results" class="grid grid-cols-1 lg:grid-cols-2 gap-6 hidden">
-        <!-- Métricas -->
-        <section class="glass-panel rounded-2xl flex flex-col overflow-hidden" style="animation: fadeUp 0.6s cubic-bezier(0.16,1,0.3,1) both">
-            <div class="px-6 py-4 border-b border-border-glass bg-white/30 flex items-center gap-3">
-                <div class="w-10 h-10 bg-white/50 rounded-xl flex items-center justify-center shadow-sm border border-white/60">
-                    <span class="material-symbols-outlined text-primary text-[20px]">analytics</span>
+    <!-- Resultados -->
+    <div id="ml-results" class="space-y-4 hidden">
+        <!-- Métricas + interpretación -->
+        <section class="panel rounded-lg overflow-hidden" style="animation: fadeUp 0.4s ease-out both">
+            <div class="px-5 py-3.5 border-b border-border-glass flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <span class="material-symbols-outlined text-on-surface-dim text-[18px]">analytics</span>
+                    <h4 class="text-sm font-semibold text-on-surface" id="ml-res-title">Resultado</h4>
                 </div>
-                <h4 class="text-h4 font-bold text-on-surface">Métricas del Modelo</h4>
+                <span id="ml-res-eval" class="text-[11px] font-mono text-on-surface-dim bg-surface-2 border border-border-glass px-2.5 py-1 rounded"></span>
             </div>
-            <div class="p-6 flex flex-col gap-4">
-                <div class="bg-white/40 border border-white/60 shadow-sm p-4 rounded-xl flex justify-between items-center transition-transform hover:-translate-y-1 duration-300">
-                    <span class="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Pendiente (Coeficiente)</span>
-                    <span id="ml-coef" class="font-mono text-primary text-xl font-bold"></span>
-                </div>
-                <div class="bg-white/40 border border-white/60 shadow-sm p-4 rounded-xl flex justify-between items-center transition-transform hover:-translate-y-1 duration-300">
-                    <span class="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Intersección</span>
-                    <span id="ml-intercept" class="font-mono text-secondary text-xl font-bold"></span>
-                </div>
-                <div class="bg-white/40 border border-white/60 shadow-sm p-4 rounded-xl flex justify-between items-center transition-transform hover:-translate-y-1 duration-300">
-                    <span class="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Precisión (R² Score)</span>
-                    <span id="ml-r2" class="font-mono text-[#6366F1] text-xl font-bold"></span>
-                </div>
+            <div class="p-5 space-y-5">
+                <div id="ml-metrics" class="grid grid-cols-1 sm:grid-cols-3 gap-3"></div>
+                <p id="ml-interpretation" class="text-sm text-on-surface-variant leading-relaxed border-l-2 border-primary/40 pl-3"></p>
             </div>
         </section>
 
-        <!-- Explicación -->
-        <section class="glass-panel rounded-2xl p-8 flex flex-col justify-center text-center relative overflow-hidden" style="animation: fadeUp 0.6s cubic-bezier(0.16,1,0.3,1) 0.1s both">
-            <div class="absolute -top-10 -right-10 w-32 h-32 bg-primary/10 rounded-full blur-2xl"></div>
-            <div class="absolute -bottom-10 -left-10 w-32 h-32 bg-secondary/10 rounded-full blur-2xl"></div>
-            
-            <div class="w-16 h-16 bg-white/50 border border-white/60 shadow-sm rounded-2xl flex items-center justify-center mx-auto mb-6 relative z-10">
-                <span class="material-symbols-outlined text-primary text-[32px]">insights</span>
+        <!-- Detalle (coeficientes / importancias / matriz / clusters) -->
+        <section id="ml-detail-section" class="panel rounded-lg overflow-hidden" style="animation: fadeUp 0.4s ease-out 0.06s both">
+            <div class="px-5 py-3.5 border-b border-border-glass flex items-center gap-2.5">
+                <span class="material-symbols-outlined text-on-surface-dim text-[18px]" id="ml-detail-icon">insights</span>
+                <h4 class="text-sm font-semibold text-on-surface" id="ml-detail-title">Detalle</h4>
             </div>
-            <h4 class="text-h4 font-bold text-on-surface mb-3 relative z-10">Interpretación</h4>
-            <p class="text-on-surface-variant text-sm leading-relaxed max-w-md mx-auto font-medium relative z-10">
-                Por cada incremento de 1 unidad en la variable predictora <strong id="lbl-x" class="text-primary bg-white/60 px-2 py-0.5 rounded-md border border-white/80 font-mono shadow-sm">X</strong>, 
-                se espera que la variable objetivo <strong id="lbl-y" class="text-secondary bg-white/60 px-2 py-0.5 rounded-md border border-white/80 font-mono shadow-sm">Y</strong> 
-                cambie en promedio <strong id="lbl-coef" class="text-on-surface font-mono font-bold bg-white/60 px-2 py-0.5 rounded-md border border-white/80 shadow-sm"></strong> unidades.
-            </p>
+            <div id="ml-detail-body" class="p-5"></div>
         </section>
     </div>
 </div>
@@ -121,7 +117,23 @@
 
 {% block scripts %}
 <script>
+    // ── Catálogo de modelos (metadatos del menú) ──────────────────────
+    const MODELOS = [
+        { id: 'linear',   nombre: 'Regresión Lineal',    icon: 'trending_up',  tipo: 'Regresión',
+          desc: 'Predice un valor numérico continuo a partir de las variables.', target: true },
+        { id: 'logistic', nombre: 'Regresión Logística', icon: 'category',     tipo: 'Clasificación',
+          desc: 'Predice a qué clase/categoría pertenece cada fila.', target: true },
+        { id: 'tree',     nombre: 'Árbol de Decisión',   icon: 'account_tree', tipo: 'Clasif. / Regresión',
+          desc: 'Reglas interpretables; se adapta al tipo de objetivo.', target: true },
+        { id: 'kmeans',   nombre: 'K-Means',             icon: 'scatter_plot', tipo: 'No supervisado',
+          desc: 'Agrupa filas similares en k grupos, sin objetivo.', target: false },
+    ];
+
+    const state = { source: '', columns: { numericas: [], categoricas: [], todas: [] }, modelo: null, features: new Set() };
+
+    // ── Carga inicial ─────────────────────────────────────────────────
     document.addEventListener('DOMContentLoaded', async () => {
+        renderModelCards();
         try {
             const res = await fetch('/api/sources');
             const data = await res.json();
@@ -132,95 +144,274 @@
                 opt.textContent = s.name;
                 select.appendChild(opt);
             });
-        } catch(e) { console.error(e); }
+        } catch (e) { console.error(e); }
     });
 
-    async function loadFeatures() {
-        const source = document.getElementById('ml-source').value;
-        const selX = document.getElementById('ml-x');
-        const selY = document.getElementById('ml-y');
-        const btnTrain = document.getElementById('ml-train-btn');
-        
-        selX.innerHTML = '';
-        selY.innerHTML = '';
-        selX.disabled = true;
-        selY.disabled = true;
-        btnTrain.disabled = true;
-
-        if(!source) return;
-
-        try {
-            const res = await fetch(`/api/models/features/${encodeURIComponent(source)}`);
-            const data = await res.json();
-            
-            if(res.ok) {
-                if(data.numericas.length < 2) {
-                    if(window.showToast) showToast("Se necesitan al menos 2 columnas numéricas", "warning");
-                    return;
-                }
-                data.numericas.forEach(col => {
-                    selX.innerHTML += `<option value="${col}">${col}</option>`;
-                    selY.innerHTML += `<option value="${col}">${col}</option>`;
-                });
-                
-                if(selY.options.length > 1) selY.selectedIndex = 1;
-                
-                selX.disabled = false;
-                selY.disabled = false;
-                btnTrain.disabled = false;
-            } else {
-                if(window.showToast) showToast(data.detail, "error");
-            }
-        } catch(e) {
-            if(window.showToast) showToast("Error de red", "error");
-        }
+    function renderModelCards() {
+        const grid = document.getElementById('ml-models-grid');
+        grid.innerHTML = MODELOS.map(m => `
+            <button type="button" data-modelo="${m.id}" onclick="selectModel('${m.id}')"
+                class="ml-model-card text-left p-4 rounded-lg border border-border-glass bg-surface hover:border-line-strong transition-colors group">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="material-symbols-outlined text-on-surface-dim group-hover:text-primary transition-colors text-[22px] ml-card-icon">${m.icon}</span>
+                    <span class="text-[10px] font-mono uppercase tracking-wider text-on-surface-dim border border-border-glass rounded px-1.5 py-0.5">${m.tipo}</span>
+                </div>
+                <h5 class="text-sm font-semibold text-on-surface mb-1">${m.nombre}</h5>
+                <p class="text-xs text-on-surface-dim leading-snug">${m.desc}</p>
+            </button>
+        `).join('');
     }
 
-    async function trainModel() {
-        const source = document.getElementById('ml-source').value;
-        const x = document.getElementById('ml-x').value;
-        const y = document.getElementById('ml-y').value;
-        
-        if(!source || !x || !y) return;
-        if(x === y) {
-            if(window.showToast) showToast("X y Y no pueden ser la misma columna", "warning");
+    // ── Selección de fuente ───────────────────────────────────────────
+    async function onSourceChange() {
+        state.source = document.getElementById('ml-source').value;
+        state.features.clear();
+        document.getElementById('ml-results').classList.add('hidden');
+        const meta = document.getElementById('ml-source-meta');
+
+        if (!state.source) {
+            document.getElementById('ml-models-section').classList.add('hidden');
+            document.getElementById('ml-config-section').classList.add('hidden');
+            meta.classList.add('hidden');
             return;
         }
 
+        try {
+            const res = await fetch(`/api/models/features/${encodeURIComponent(state.source)}`);
+            const data = await res.json();
+            if (!res.ok) { if (window.showToast) showToast(data.detail || 'Error al leer columnas', 'error'); return; }
+
+            state.columns = { numericas: data.numericas || [], categoricas: data.categoricas || [], todas: data.todas || [] };
+
+            meta.textContent = `${data.n_filas} filas · ${state.columns.numericas.length} num · ${state.columns.categoricas.length} cat`;
+            meta.classList.remove('hidden');
+
+            document.getElementById('ml-models-section').classList.remove('hidden');
+            renderFeatures();
+            renderTargetOptions();
+
+            // Si ya había un modelo elegido, refrescamos config
+            if (state.modelo) document.getElementById('ml-config-section').classList.remove('hidden');
+        } catch (e) {
+            if (window.showToast) showToast('Error de red', 'error');
+        }
+    }
+
+    // ── Selección de modelo ───────────────────────────────────────────
+    function selectModel(id) {
+        state.modelo = id;
+        const meta = MODELOS.find(m => m.id === id);
+
+        document.querySelectorAll('.ml-model-card').forEach(c => {
+            const active = c.dataset.modelo === id;
+            c.classList.toggle('border-primary', active);
+            c.classList.toggle('bg-primary/5', active);
+            c.classList.toggle('border-border-glass', !active);
+            c.querySelector('.ml-card-icon').classList.toggle('text-primary', active);
+        });
+
+        // Mostrar config y alternar objetivo / parámetros según el modelo
+        document.getElementById('ml-config-section').classList.remove('hidden');
+        document.getElementById('ml-target-wrap').classList.toggle('hidden', !meta.target);
+        document.getElementById('ml-param-k').classList.toggle('hidden', id !== 'kmeans');
+        document.getElementById('ml-param-depth').classList.toggle('hidden', id !== 'tree');
+
+        const hints = {
+            linear:   'Objetivo numérico continuo. Las categóricas de entrada se codifican automáticamente.',
+            logistic: 'Objetivo categórico (pocas clases). Predice la clase de cada fila.',
+            tree:     'Se adapta solo: clasificación si el objetivo es categórico, regresión si es numérico.',
+            kmeans:   'No usa objetivo: agrupa las filas según las variables de entrada elegidas.',
+        };
+        document.getElementById('ml-config-hint').textContent = hints[id] || '';
+    }
+
+    // ── Variables de entrada (chips) ──────────────────────────────────
+    function renderFeatures() {
+        const cont = document.getElementById('ml-features');
+        const cols = state.columns.todas;
+        if (!cols.length) {
+            cont.innerHTML = '<p class="text-xs text-on-surface-dim">No hay columnas utilizables en esta fuente.</p>';
+            return;
+        }
+        const numSet = new Set(state.columns.numericas);
+        cont.innerHTML = cols.map(col => {
+            const tipo = numSet.has(col) ? 'num' : 'cat';
+            const on = state.features.has(col);
+            return `
+                <button type="button" data-col="${encodeURIComponent(col)}" onclick="toggleFeature(this.dataset.col)"
+                    class="ml-feat-chip inline-flex items-center gap-2 px-3 py-1.5 rounded-md border text-xs font-mono transition-colors
+                    ${on ? 'border-primary bg-primary/10 text-on-surface' : 'border-border-glass bg-surface-2 text-on-surface-variant hover:border-line-strong'}">
+                    ${col}
+                    <span class="text-[9px] uppercase ${on ? 'text-primary' : 'text-on-surface-dim'}">${tipo}</span>
+                </button>`;
+        }).join('');
+    }
+
+    function toggleFeature(encCol) {
+        const col = decodeURIComponent(encCol);
+        if (state.features.has(col)) state.features.delete(col);
+        else state.features.add(col);
+        renderFeatures();
+        renderTargetOptions();
+    }
+
+    function toggleAllFeatures() {
+        const cols = state.columns.todas;
+        if (state.features.size === cols.length) state.features.clear();
+        else cols.forEach(c => state.features.add(c));
+        renderFeatures();
+        renderTargetOptions();
+    }
+
+    // ── Objetivo (excluye las features seleccionadas) ─────────────────
+    function renderTargetOptions() {
+        const sel = document.getElementById('ml-target');
+        const prev = sel.value;
+        const opciones = state.columns.todas.filter(c => !state.features.has(c));
+        sel.innerHTML = '<option value="">Selecciona...</option>' +
+            opciones.map(c => `<option value="${c}">${c}</option>`).join('');
+        if (opciones.includes(prev)) sel.value = prev;
+    }
+
+    // ── Entrenamiento ─────────────────────────────────────────────────
+    async function trainModel() {
+        if (!state.source) { showToast('Selecciona una fuente', 'warning'); return; }
+        if (!state.modelo) { showToast('Elige un modelo', 'warning'); return; }
+        if (state.features.size === 0) { showToast('Marca al menos una variable de entrada', 'warning'); return; }
+
+        const meta = MODELOS.find(m => m.id === state.modelo);
+        const target = document.getElementById('ml-target').value;
+        if (meta.target && !target) { showToast('Selecciona la columna objetivo', 'warning'); return; }
+
+        const params = {};
+        if (state.modelo === 'kmeans') params.k = parseInt(document.getElementById('ml-k').value) || 3;
+        if (state.modelo === 'tree') params.max_depth = parseInt(document.getElementById('ml-depth').value) || 4;
+
+        const btn = document.getElementById('ml-train-btn');
+        btn.disabled = true;
         document.getElementById('ml-results').classList.add('hidden');
+        document.getElementById('ml-loading-text').textContent = `Entrenando ${meta.nombre}…`;
         document.getElementById('ml-loading').classList.remove('hidden');
-        document.getElementById('ml-train-btn').disabled = true;
 
         try {
-            const res = await fetch(`/api/models/train`, {
+            const res = await fetch('/api/models/train', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({source: source, col_x: x, col_y: y})
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    source: state.source,
+                    modelo: state.modelo,
+                    features: Array.from(state.features),
+                    target: meta.target ? target : null,
+                    params,
+                }),
             });
             const data = await res.json();
-            
             document.getElementById('ml-loading').classList.add('hidden');
-            document.getElementById('ml-train-btn').disabled = false;
+            btn.disabled = false;
 
-            if(res.ok) {
+            if (res.ok) {
+                renderResult(data.resultado);
                 document.getElementById('ml-results').classList.remove('hidden');
-                document.getElementById('ml-coef').textContent = data.metrics.pendiente.toFixed(4);
-                document.getElementById('ml-intercept').textContent = data.metrics.intercepto.toFixed(4);
-                document.getElementById('ml-r2').textContent = data.metrics.r2.toFixed(4);
-                
-                document.getElementById('lbl-x').textContent = x;
-                document.getElementById('lbl-y').textContent = y;
-                document.getElementById('lbl-coef').textContent = data.metrics.pendiente.toFixed(4);
-                
-                if(window.showToast) showToast("Modelo entrenado exitosamente", "success");
+                if (window.showToast) showToast('Modelo entrenado', 'success');
             } else {
-                if(window.showToast) showToast(data.detail, "error");
+                if (window.showToast) showToast(data.detail || 'No se pudo entrenar', 'error');
             }
-        } catch(e) {
+        } catch (e) {
             document.getElementById('ml-loading').classList.add('hidden');
-            document.getElementById('ml-train-btn').disabled = false;
-            if(window.showToast) showToast("Error de red", "error");
+            btn.disabled = false;
+            if (window.showToast) showToast('Error de red', 'error');
         }
+    }
+
+    // ── Render de resultados ──────────────────────────────────────────
+    function renderResult(r) {
+        document.getElementById('ml-res-title').textContent = `${r.modelo_nombre} · ${r.n_muestras} filas · ${r.n_features} features`;
+        document.getElementById('ml-res-eval').textContent = r.evaluacion;
+
+        document.getElementById('ml-metrics').innerHTML = r.metricas.map(m => `
+            <div class="rounded-md border p-4 ${m.destacado ? 'border-primary/30 bg-surface-2' : 'border-border-glass bg-surface-2'}">
+                <p class="text-[11px] font-mono uppercase tracking-wider text-on-surface-variant mb-1.5">${m.label}</p>
+                <p class="font-mono text-xl font-semibold tnum ${m.destacado ? 'text-primary' : 'text-on-surface'}">${m.valor}</p>
+            </div>`).join('');
+
+        document.getElementById('ml-interpretation').textContent = r.interpretacion;
+
+        renderDetail(r.detalle);
+    }
+
+    function renderDetail(d) {
+        const body = document.getElementById('ml-detail-body');
+        const title = document.getElementById('ml-detail-title');
+        const icon = document.getElementById('ml-detail-icon');
+
+        if (!d) { document.getElementById('ml-detail-section').classList.add('hidden'); return; }
+        document.getElementById('ml-detail-section').classList.remove('hidden');
+
+        if (d.tipo === 'coeficientes') {
+            title.textContent = 'Coeficientes';
+            icon.textContent = 'function';
+            let html = `<div class="mb-4 flex items-center gap-2 text-xs font-mono text-on-surface-variant">
+                <span class="text-on-surface-dim">intercepto</span>
+                <span class="text-on-surface tnum">${d.intercepto}</span></div>`;
+            html += '<div class="space-y-2">' + d.items.map(it => `
+                <div class="flex items-center justify-between text-sm border-b border-border-glass pb-2 last:border-0">
+                    <span class="font-mono text-on-surface-variant truncate pr-3">${it.nombre}</span>
+                    <span class="font-mono tnum ${it.valor >= 0 ? 'text-on-surface' : 'text-error-text'}">${it.valor >= 0 ? '+' : ''}${it.valor}</span>
+                </div>`).join('') + '</div>';
+            body.innerHTML = html;
+
+        } else if (d.tipo === 'importancias') {
+            title.textContent = 'Importancia de variables';
+            icon.textContent = 'leaderboard';
+            const max = Math.max(...d.items.map(i => i.valor), 0.0001);
+            let html = '<div class="space-y-3">' + d.items.map(it => `
+                <div>
+                    <div class="flex justify-between text-xs font-mono text-on-surface-variant mb-1.5">
+                        <span class="truncate pr-2">${it.nombre}</span>
+                        <span class="text-primary tnum">${(it.valor * 100).toFixed(1)}%</span>
+                    </div>
+                    <div class="w-full bg-surface-2 rounded-full h-1.5 border border-border-glass overflow-hidden">
+                        <div class="bg-primary h-full rounded-full" style="width:${(it.valor / max * 100).toFixed(1)}%"></div>
+                    </div>
+                </div>`).join('') + '</div>';
+            if (d.extra && d.extra.tipo === 'confusion') {
+                html += '<div class="mt-6 pt-5 border-t border-border-glass">' + confusionHtml(d.extra) + '</div>';
+            }
+            body.innerHTML = html;
+
+        } else if (d.tipo === 'confusion') {
+            title.textContent = 'Matriz de confusión';
+            icon.textContent = 'grid_on';
+            body.innerHTML = confusionHtml(d);
+
+        } else if (d.tipo === 'clusters') {
+            title.textContent = 'Tamaño de los grupos';
+            icon.textContent = 'workspaces';
+            const max = Math.max(...d.items.map(i => i.n), 1);
+            body.innerHTML = '<div class="space-y-3">' + d.items.map(it => `
+                <div>
+                    <div class="flex justify-between text-xs font-mono text-on-surface-variant mb-1.5">
+                        <span>Grupo ${it.cluster}</span>
+                        <span class="text-primary tnum">${it.n} filas</span>
+                    </div>
+                    <div class="w-full bg-surface-2 rounded-full h-1.5 border border-border-glass overflow-hidden">
+                        <div class="bg-primary h-full rounded-full" style="width:${(it.n / max * 100).toFixed(1)}%"></div>
+                    </div>
+                </div>`).join('') + '</div>';
+        }
+    }
+
+    function confusionHtml(d) {
+        let html = '<p class="text-[11px] font-mono uppercase tracking-wider text-on-surface-dim mb-3">filas: real · columnas: predicho</p>';
+        html += '<div class="overflow-x-auto"><table class="border-collapse text-xs font-mono">';
+        html += '<thead><tr><th class="p-2"></th>' + d.clases.map(c =>
+            `<th class="p-2 text-on-surface-dim font-medium border-b border-border-glass">${c}</th>`).join('') + '</tr></thead><tbody>';
+        d.matriz.forEach((fila, i) => {
+            html += `<tr><td class="p-2 text-on-surface-dim text-right border-r border-border-glass">${d.clases[i]}</td>` +
+                fila.map((v, j) => `<td class="p-2 text-center tnum ${i === j ? 'text-primary font-semibold' : 'text-on-surface-variant'}">${v}</td>`).join('') + '</tr>';
+        });
+        html += '</tbody></table></div>';
+        return html;
     }
 </script>
 {% endblock %}
