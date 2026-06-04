@@ -2,6 +2,8 @@ import os
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from src.api_routes import router as api_router
 
 # Obtener la ruta base del proyecto
@@ -18,6 +20,46 @@ templates = Jinja2Templates(directory=os.path.join(FRONTEND_DIR, "templates"))
 
 # Incluir las rutas de la API
 app.include_router(api_router, prefix="/api")
+
+
+# --- Health check (lo usan las plataformas de nube para saber si la app vive) ---
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
+
+# --- Manejadores de error amigables ---
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    # Las rutas de API devuelven JSON; las vistas devuelven una página.
+    if request.url.path.startswith("/api"):
+        return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+    if exc.status_code == 404:
+        return templates.TemplateResponse(
+            "error.html",
+            {"request": request, "codigo": 404, "titulo": "Página no encontrada",
+             "mensaje": "La ruta que buscas no existe o se movió."},
+            status_code=404,
+        )
+    return templates.TemplateResponse(
+        "error.html",
+        {"request": request, "codigo": exc.status_code, "titulo": "Error",
+         "mensaje": str(exc.detail)},
+        status_code=exc.status_code,
+    )
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    if request.url.path.startswith("/api"):
+        return JSONResponse(status_code=500, content={"detail": "Error interno del servidor."})
+    return templates.TemplateResponse(
+        "error.html",
+        {"request": request, "codigo": 500, "titulo": "Error interno",
+         "mensaje": "Algo salió mal en el servidor. Inténtalo de nuevo."},
+        status_code=500,
+    )
+
 
 # --- Rutas del Frontend (Vistas) ---
 
@@ -51,4 +93,6 @@ async def modeling(request: Request):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("src.web_app:app", host="127.0.0.1", port=8000, reload=True)
+    # El puerto se puede fijar con la variable de entorno PORT (nube); por defecto 8000 en local.
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("src.web_app:app", host="0.0.0.0", port=port, reload=True)

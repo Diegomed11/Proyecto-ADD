@@ -31,4 +31,7 @@ COPY --chown=user . .
 
 EXPOSE 7860
 # OJO: 0.0.0.0 (no 127.0.0.1) para que sea accesible fuera del contenedor.
-CMD ["uvicorn", "src.web_app:app", "--host", "0.0.0.0", "--port", "7860"]
+# Forma shell para que ${PORT} se expanda: HF Spaces usa 7860; otras nubes
+# (AWS, Render…) inyectan su propio PORT. Si no hay PORT, usa 7860.
+ENV PORT=7860
+CMD ["sh", "-c", "uvicorn src.web_app:app --host 0.0.0.0 --port ${PORT:-7860}"]

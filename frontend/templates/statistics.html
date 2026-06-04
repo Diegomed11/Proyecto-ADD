@@ -41,6 +41,17 @@
     </div>
 
     <div id="eda-results" class="grid grid-cols-1 md:grid-cols-12 gap-4 hidden">
+        <!-- Hallazgos automáticos -->
+        <section class="md:col-span-12 panel rounded-lg p-5" style="animation: fadeUp 0.4s ease-out both">
+            <div class="flex items-center gap-2.5 mb-4">
+                <span class="material-symbols-outlined text-primary text-[20px]">auto_awesome</span>
+                <h3 class="text-sm font-semibold text-on-surface">Hallazgos automáticos</h3>
+            </div>
+            <div id="eda-observations" class="grid grid-cols-1 lg:grid-cols-2 gap-2.5">
+                <!-- JS Injected -->
+            </div>
+        </section>
+
         <!-- Tabla descriptiva -->
         <section class="md:col-span-12 panel rounded-lg flex flex-col overflow-hidden" style="animation: fadeUp 0.4s ease-out both">
             <div class="px-5 py-3.5 border-b border-border-glass flex items-center gap-2.5">
@@ -66,6 +77,18 @@
                         <!-- JS Injected -->
                     </tbody>
                 </table>
+            </div>
+        </section>
+
+        <!-- Mapa de correlaciones -->
+        <section id="eda-corr-section" class="md:col-span-12 panel rounded-lg p-5 hidden" style="animation: fadeUp 0.4s ease-out 0.04s both">
+            <div class="flex items-center gap-2.5 mb-1">
+                <span class="material-symbols-outlined text-on-surface-dim text-[20px]">grid_on</span>
+                <h3 class="text-sm font-semibold text-on-surface">Correlaciones</h3>
+            </div>
+            <p class="text-[11px] text-on-surface-dim mb-4 font-mono uppercase tracking-wider">pearson · azul = positiva · rojo = negativa</p>
+            <div class="overflow-x-auto">
+                <table id="eda-corr-table" class="border-collapse text-xs font-mono"></table>
             </div>
         </section>
 
@@ -164,6 +187,12 @@
     }
 
     function renderEDAResults(data) {
+        // 0. Hallazgos automáticos
+        renderObservations(data.observations || []);
+
+        // 0b. Mapa de correlaciones
+        renderCorrelation(data.correlation || { columnas: [], matriz: [] });
+
         // 1. Resumen Descriptivo
         const descBody = document.getElementById('eda-descriptive-body');
         descBody.innerHTML = '';
@@ -260,6 +289,53 @@
                 catContainer.innerHTML += html;
             }
         }
+    }
+
+    function renderObservations(obs) {
+        const cont = document.getElementById('eda-observations');
+        if (!obs.length) {
+            cont.innerHTML = '<p class="text-on-surface-variant text-sm">Sin observaciones destacadas.</p>';
+            return;
+        }
+        const estilos = {
+            warning: { icon: 'warning',      color: 'text-warning-text', bd: 'border-warning-text/25' },
+            success: { icon: 'check_circle', color: 'text-success-text', bd: 'border-success-text/25' },
+            info:    { icon: 'info',         color: 'text-info-text',    bd: 'border-info-text/25' },
+        };
+        cont.innerHTML = obs.map(o => {
+            const s = estilos[o.nivel] || estilos.info;
+            return `<div class="flex items-start gap-2.5 bg-surface-2 border ${s.bd} rounded-md px-3.5 py-2.5">
+                <span class="material-symbols-outlined text-[18px] ${s.color} mt-px shrink-0">${s.icon}</span>
+                <span class="text-sm text-on-surface-variant leading-snug">${o.texto}</span>
+            </div>`;
+        }).join('');
+    }
+
+    function renderCorrelation(corr) {
+        const section = document.getElementById('eda-corr-section');
+        const table = document.getElementById('eda-corr-table');
+        const cols = corr.columnas || [];
+        if (cols.length < 2) { section.classList.add('hidden'); return; }
+        section.classList.remove('hidden');
+
+        // Color de celda: azul (positiva) a rojo (negativa), intensidad = |valor|.
+        const cellColor = (v) => {
+            const a = Math.min(Math.abs(v), 1);
+            if (v >= 0) return `background-color: rgba(245, 158, 11, ${a * 0.85})`;   // ámbar/primario
+            return `background-color: rgba(248, 113, 113, ${a * 0.85})`;             // rojo
+        };
+        const textColor = (v) => Math.abs(v) > 0.5 ? 'color:#18181B' : '';
+
+        let html = '<thead><tr><th class="p-2"></th>' +
+            cols.map(c => `<th class="p-2 text-on-surface-dim font-medium border-b border-border-glass max-w-[90px] truncate" title="${c}">${c}</th>`).join('') +
+            '</tr></thead><tbody>';
+        corr.matriz.forEach((fila, i) => {
+            html += `<tr><td class="p-2 text-on-surface-dim text-right border-r border-border-glass max-w-[120px] truncate" title="${cols[i]}">${cols[i]}</td>` +
+                fila.map(v => `<td class="p-2 text-center tnum rounded-sm" style="${cellColor(v)};${textColor(v)}">${v.toFixed(2)}</td>`).join('') +
+                '</tr>';
+        });
+        html += '</tbody>';
+        table.innerHTML = html;
     }
 
     document.addEventListener('DOMContentLoaded', () => {

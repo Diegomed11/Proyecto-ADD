@@ -208,19 +208,35 @@ async def load_mongo(req: MongoConnection, collection: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# Límites de seguridad para la subida (evitan agotar la RAM en un servidor pequeño).
+MAX_UPLOAD_MB = 25
+MAX_ROWS = 100_000
+
+
 @router.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
     """Sube un archivo local y lo carga en Pandas"""
     try:
         content = await file.read()
         import io
-        
-        nombre = file.filename
-        if nombre.endswith(".csv"):
+
+        # Límite de tamaño: rechazamos archivos demasiado grandes antes de parsear.
+        size_mb = len(content) / (1024 * 1024)
+        if size_mb > MAX_UPLOAD_MB:
+            raise HTTPException(
+                status_code=413,
+                detail=f"El archivo pesa {size_mb:.1f} MB y supera el límite de {MAX_UPLOAD_MB} MB.",
+            )
+        if not content:
+            raise HTTPException(status_code=400, detail="El archivo está vacío.")
+
+        nombre = file.filename or "archivo"
+        nombre_lower = nombre.lower()
+        if nombre_lower.endswith(".csv"):
             df = pd.read_csv(io.BytesIO(content))
-        elif nombre.endswith(".tsv"):
+        elif nombre_lower.endswith(".tsv"):
             df = pd.read_csv(io.BytesIO(content), sep='\t')
-        elif nombre.endswith(".json"):
+        elif nombre_lower.endswith(".json"):
             import json
             datos = json.loads(content.decode("utf-8"))
             if isinstance(datos, list):
@@ -228,10 +244,30 @@ async def upload_file(file: UploadFile = File(...)):
             else:
                 df = pd.json_normalize([datos])
         else:
-            raise HTTPException(status_code=400, detail="Formato no soportado")
-            
+            raise HTTPException(status_code=400, detail="Formato no soportado. Usa CSV, TSV o JSON.")
+
+        if df.empty:
+            raise HTTPException(status_code=400, detail="El archivo no contiene datos legibles.")
+
+        # Tope de filas: si excede, recortamos y avisamos (mantiene la RAM acotada).
+        truncado = False
+        if len(df) > MAX_ROWS:
+            df = df.head(MAX_ROWS)
+            truncado = True
+
         _fuentes[nombre] = df
-        return {"status": "success", "message": f"Archivo {nombre} cargado", "rows": len(df), "cols": len(df.columns)}
+        mensaje = f"Archivo {nombre} cargado"
+        if truncado:
+            mensaje += f" (recortado a las primeras {MAX_ROWS:,} filas)"
+        return {
+            "status": "success",
+            "message": mensaje,
+            "rows": len(df),
+            "cols": len(df.columns),
+            "truncado": truncado,
+        }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -274,14 +310,22 @@ async def run_eda(source_name: str):
         for col in tipos_col.get("categoricas", []):
             dist = analizador.distribucion_por_categoria(col)
             dist_categoricas[col] = dist
-            
+
+        # Análisis ampliado: correlaciones, duplicados y hallazgos automáticos.
+        correlacion = analizador.matriz_correlacion()
+        duplicados = analizador.filas_duplicadas()
+        observaciones = analizador.observaciones()
+
         return {
             "source": source_name,
             "dimensions": {"rows": resumen["total_registros"], "cols": resumen["total_columnas"]},
             "nulls": nulos,
             "descriptive": desc_dict,
             "outliers": outliers_info,
-            "categorical": dist_categoricas
+            "categorical": dist_categoricas,
+            "correlation": correlacion,
+            "duplicates": duplicados,
+            "observations": observaciones,
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

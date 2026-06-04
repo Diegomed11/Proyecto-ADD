@@ -11,9 +11,44 @@
         </span>
         <div>
             <h2 class="text-h2 text-on-surface">Machine Learning</h2>
-            <p class="text-on-surface-variant text-sm mt-1">Elige un modelo, las variables de entrada y el objetivo, y entrénalo sobre cualquier dataset en memoria.</p>
+            <p class="text-on-surface-variant text-sm mt-1">Entrena un modelo sobre cualquier dataset en memoria. No necesitas saber programar: sigue los pasos.</p>
         </div>
     </div>
+
+    <!-- Guía: cómo funciona -->
+    <section class="panel rounded-lg p-5 stagger-2">
+        <div class="flex items-center gap-2 mb-4">
+            <span class="material-symbols-outlined text-primary text-[18px]">menu_book</span>
+            <h3 class="text-sm font-semibold text-on-surface">¿Cómo funciona? — 3 pasos</h3>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="flex gap-3">
+                <span class="w-6 h-6 rounded-full bg-primary/15 text-primary text-xs font-mono font-semibold flex items-center justify-center shrink-0">1</span>
+                <div>
+                    <p class="text-sm text-on-surface font-medium">Elige los datos</p>
+                    <p class="text-xs text-on-surface-dim leading-snug mt-0.5">Un CSV/TSV ya cargado en <span class="text-on-surface-variant">Flujos de trabajo</span>, o una consulta SQL guardada.</p>
+                </div>
+            </div>
+            <div class="flex gap-3">
+                <span class="w-6 h-6 rounded-full bg-primary/15 text-primary text-xs font-mono font-semibold flex items-center justify-center shrink-0">2</span>
+                <div>
+                    <p class="text-sm text-on-surface font-medium">Elige el modelo</p>
+                    <p class="text-xs text-on-surface-dim leading-snug mt-0.5">¿Predecir un número, una categoría, o agrupar? Cada tarjeta te dice cuándo usar cada uno.</p>
+                </div>
+            </div>
+            <div class="flex gap-3">
+                <span class="w-6 h-6 rounded-full bg-primary/15 text-primary text-xs font-mono font-semibold flex items-center justify-center shrink-0">3</span>
+                <div>
+                    <p class="text-sm text-on-surface font-medium">Configura y entrena</p>
+                    <p class="text-xs text-on-surface-dim leading-snug mt-0.5">Marca qué columnas usar (entradas) y cuál predecir (objetivo). Pulsa <span class="text-on-surface-variant">Entrenar</span>.</p>
+                </div>
+            </div>
+        </div>
+        <div class="mt-4 pt-4 border-t border-border-glass flex items-start gap-2 text-xs text-on-surface-dim">
+            <span class="material-symbols-outlined text-[15px] text-on-surface-variant mt-px">lightbulb</span>
+            <p><span class="text-on-surface-variant font-medium">Glosario rápido:</span> <span class="text-on-surface-variant">entrada (feature)</span> = columna que el modelo usa como pista · <span class="text-on-surface-variant">objetivo (target)</span> = lo que quieres predecir. Ej.: con <span class="font-mono">superficie</span> y <span class="font-mono">habitaciones</span> (entradas) predices el <span class="font-mono">precio</span> (objetivo).</p>
+        </div>
+    </section>
 
     <!-- Paso 1: Fuente -->
     <section class="panel rounded-lg p-5 stagger-2">
@@ -26,6 +61,10 @@
             </div>
             <p id="ml-source-meta" class="text-xs font-mono text-on-surface-dim pb-2.5 hidden"></p>
         </div>
+        <p id="ml-no-sources" class="hidden mt-3 text-xs text-warning-text flex items-center gap-2">
+            <span class="material-symbols-outlined text-[15px]">info</span>
+            No hay datos en memoria. Carga un archivo en <span class="font-medium">Flujos de trabajo</span> o guarda una consulta en el <span class="font-medium">Editor SQL</span> primero.
+        </p>
     </section>
 
     <!-- Paso 2: Menú de modelos -->
@@ -40,12 +79,27 @@
     <section id="ml-config-section" class="panel rounded-lg p-5 space-y-5 hidden">
         <p class="text-[11px] font-mono text-on-surface-variant"><span class="text-on-surface-dim">3 ·</span> configura y aplica</p>
 
+        <!-- Ficha explicativa del modelo elegido -->
+        <div id="ml-model-info" class="rounded-md border border-primary/25 bg-primary/[0.06] p-4 hidden">
+            <div class="flex items-center gap-2 mb-3">
+                <span class="material-symbols-outlined text-primary text-[20px]" id="ml-info-icon">trending_up</span>
+                <h5 class="text-sm font-semibold text-on-surface" id="ml-info-nombre">Modelo</h5>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-xs">
+                <div><p class="font-mono uppercase tracking-wider text-on-surface-dim mb-1">¿Cuándo usarlo?</p><p class="text-on-surface-variant leading-snug" id="ml-info-cuando"></p></div>
+                <div><p class="font-mono uppercase tracking-wider text-on-surface-dim mb-1">Ejemplo</p><p class="text-on-surface-variant leading-snug" id="ml-info-ejemplo"></p></div>
+                <div><p class="font-mono uppercase tracking-wider text-on-surface-dim mb-1">Objetivo esperado</p><p class="text-on-surface-variant leading-snug" id="ml-info-objetivo"></p></div>
+                <div><p class="font-mono uppercase tracking-wider text-on-surface-dim mb-1">Qué obtienes</p><p class="text-on-surface-variant leading-snug" id="ml-info-salida"></p></div>
+            </div>
+        </div>
+
         <!-- Variables de entrada -->
         <div>
-            <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center justify-between mb-1">
                 <label class="block text-[11px] font-mono text-on-surface-variant">variables de entrada (features)</label>
                 <button type="button" onclick="toggleAllFeatures()" class="text-[11px] font-mono text-on-surface-dim hover:text-primary transition-colors">marcar / limpiar</button>
             </div>
+            <p class="text-xs text-on-surface-dim mb-2.5">Columnas que el modelo usa como pistas. Marca las que crees que influyen. <span class="text-on-surface-dim/70">(num = numérica, cat = categoría/texto)</span></p>
             <div id="ml-features" class="flex flex-wrap gap-2">
                 <!-- Chips inyectados por JS -->
             </div>
@@ -54,7 +108,8 @@
         <!-- Objetivo + parámetros -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
             <div id="ml-target-wrap">
-                <label class="block text-[11px] font-mono text-on-surface-variant mb-2">objetivo (target)</label>
+                <label class="block text-[11px] font-mono text-on-surface-variant mb-1">objetivo (target)</label>
+                <p class="text-xs text-on-surface-dim mb-2">La columna que quieres predecir.</p>
                 <select id="ml-target" class="w-full rounded-md px-3 py-2 text-sm custom-select font-mono">
                     <option value="">Selecciona...</option>
                 </select>
@@ -119,14 +174,30 @@
 <script>
     // ── Catálogo de modelos (metadatos del menú) ──────────────────────
     const MODELOS = [
-        { id: 'linear',   nombre: 'Regresión Lineal',    icon: 'trending_up',  tipo: 'Regresión',
-          desc: 'Predice un valor numérico continuo a partir de las variables.', target: true },
-        { id: 'logistic', nombre: 'Regresión Logística', icon: 'category',     tipo: 'Clasificación',
-          desc: 'Predice a qué clase/categoría pertenece cada fila.', target: true },
-        { id: 'tree',     nombre: 'Árbol de Decisión',   icon: 'account_tree', tipo: 'Clasif. / Regresión',
-          desc: 'Reglas interpretables; se adapta al tipo de objetivo.', target: true },
-        { id: 'kmeans',   nombre: 'K-Means',             icon: 'scatter_plot', tipo: 'No supervisado',
-          desc: 'Agrupa filas similares en k grupos, sin objetivo.', target: false },
+        { id: 'linear',   nombre: 'Regresión Lineal',    icon: 'trending_up',  tipo: 'Regresión', target: true,
+          desc: 'Predice un valor numérico continuo a partir de las variables.',
+          cuando: 'Cuando el objetivo es un NÚMERO continuo (precio, temperatura, ventas).',
+          ejemplo: 'Predecir el precio de una casa a partir de su superficie y nº de habitaciones.',
+          objetivoTipo: 'Numérico (continuo)',
+          salida: 'Una fórmula con un peso por variable + R² (qué tan bien ajusta).' },
+        { id: 'logistic', nombre: 'Regresión Logística', icon: 'category',     tipo: 'Clasificación', target: true,
+          desc: 'Predice a qué clase o categoría pertenece cada fila.',
+          cuando: 'Cuando el objetivo es una CATEGORÍA con pocas opciones (sí/no, tipo A/B/C).',
+          ejemplo: 'Predecir si un cliente se dará de baja (sí / no) según su actividad.',
+          objetivoTipo: 'Categórico (pocas clases)',
+          salida: 'La clase predicha por fila + exactitud y matriz de confusión.' },
+        { id: 'tree',     nombre: 'Árbol de Decisión',   icon: 'account_tree', tipo: 'Clasif. / Regresión', target: true,
+          desc: 'Reglas tipo «si… entonces». Se adapta al tipo de objetivo.',
+          cuando: 'Cuando quieres entender QUÉ variables pesan más y reglas fáciles de leer.',
+          ejemplo: 'Saber qué factores (edad, ingresos…) más influyen en aprobar un crédito.',
+          objetivoTipo: 'Numérico o categórico (se adapta solo)',
+          salida: 'Ranking de importancia de cada variable + métrica según el tipo.' },
+        { id: 'kmeans',   nombre: 'K-Means',             icon: 'scatter_plot', tipo: 'No supervisado', target: false,
+          desc: 'Agrupa filas parecidas en k grupos. No necesita objetivo.',
+          cuando: 'Cuando NO quieres predecir nada, sino descubrir grupos naturales en los datos.',
+          ejemplo: 'Segmentar clientes en k perfiles según su comportamiento de compra.',
+          objetivoTipo: 'No usa objetivo',
+          salida: 'A qué grupo va cada fila + tamaño de cada grupo.' },
     ];
 
     const state = { source: '', columns: { numericas: [], categoricas: [], todas: [] }, modelo: null, features: new Set() };
@@ -138,12 +209,13 @@
             const res = await fetch('/api/sources');
             const data = await res.json();
             const select = document.getElementById('ml-source');
-            data.sources.forEach(s => {
+            (data.sources || []).forEach(s => {
                 const opt = document.createElement('option');
                 opt.value = s.name;
                 opt.textContent = s.name;
                 select.appendChild(opt);
             });
+            document.getElementById('ml-no-sources').classList.toggle('hidden', (data.sources || []).length > 0);
         } catch (e) { console.error(e); }
     });
 
@@ -216,11 +288,21 @@
         document.getElementById('ml-param-k').classList.toggle('hidden', id !== 'kmeans');
         document.getElementById('ml-param-depth').classList.toggle('hidden', id !== 'tree');
 
+        // Ficha explicativa del modelo
+        const info = document.getElementById('ml-model-info');
+        info.classList.remove('hidden');
+        document.getElementById('ml-info-icon').textContent = meta.icon;
+        document.getElementById('ml-info-nombre').textContent = meta.nombre;
+        document.getElementById('ml-info-cuando').textContent = meta.cuando;
+        document.getElementById('ml-info-ejemplo').textContent = meta.ejemplo;
+        document.getElementById('ml-info-objetivo').textContent = meta.objetivoTipo;
+        document.getElementById('ml-info-salida').textContent = meta.salida;
+
         const hints = {
-            linear:   'Objetivo numérico continuo. Las categóricas de entrada se codifican automáticamente.',
-            logistic: 'Objetivo categórico (pocas clases). Predice la clase de cada fila.',
-            tree:     'Se adapta solo: clasificación si el objetivo es categórico, regresión si es numérico.',
-            kmeans:   'No usa objetivo: agrupa las filas según las variables de entrada elegidas.',
+            linear:   'Las columnas de texto que marques como entrada se convierten a números automáticamente.',
+            logistic: 'Elige como objetivo una columna con pocas categorías distintas (ej. sí/no).',
+            tree:     'Se adapta solo: clasifica si el objetivo es categórico, predice número si es numérico.',
+            kmeans:   'No se elige objetivo. Ajusta «grupos (k)» = en cuántos grupos quieres dividir las filas.',
         };
         document.getElementById('ml-config-hint').textContent = hints[id] || '';
     }

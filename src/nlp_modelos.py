@@ -2,8 +2,22 @@
 Modelos de NLP basados en Transformers / BERT (Etapa de análisis de texto web).
 
 Expone un catálogo de tareas y una función `analizar(tarea, texto, opciones)`
-que ejecuta el pipeline de HuggingFace correspondiente. Los pipelines se cargan
+que ejecuta el modelo de HuggingFace correspondiente. Los modelos se cargan
 de forma diferida (lazy) y se cachean en memoria para reutilizarlos.
+
+COMPATIBILIDAD DE VERSIONES
+---------------------------
+A partir de transformers 5.x cambiaron / se eliminaron varios nombres de tarea
+de `pipeline()`:
+    sentiment-analysis   -> text-classification
+    ner                  -> token-classification
+    summarization        -> (eliminada del pipeline)
+    question-answering   -> (eliminada del pipeline)
+
+Para que la app funcione igual en 4.x y en 5.x:
+  * sentiment / ner / zeroshot usan pipeline() con nombres de tarea seguros.
+  * summary y qa cargan el modelo + tokenizer directamente (AutoModel...) y
+    ejecutan la inferencia a mano. Esto es independiente de la versión.
 
 Catálogo de modelos:
     sentiment : Análisis de sentimiento (DistilBERT SST-2)
@@ -16,13 +30,14 @@ Catálogo de modelos:
 import os
 
 os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
+os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 
 # Catálogo que también consume el frontend para construir el menú.
 MODELOS_NLP = {
     "sentiment": {
         "nombre": "Análisis de Sentimiento",
         "modelo": "distilbert-base-uncased-finetuned-sst-2-english",
-        "tarea_hf": "sentiment-analysis",
+        "tarea_hf": "text-classification",
         "icono": "sentiment_satisfied",
         "tipo": "Clasificación",
         "pagina_ideal": "Reseñas, opiniones, comentarios o blogs personales (mejor en inglés).",
@@ -49,7 +64,7 @@ MODELOS_NLP = {
     "ner": {
         "nombre": "Entidades (NER)",
         "modelo": "dslim/bert-base-NER",
-        "tarea_hf": "ner",
+        "tarea_hf": "token-classification",
         "icono": "person_pin",
         "tipo": "Etiquetado",
         "pagina_ideal": "Noticias o biografías con nombres de personas, lugares y organizaciones.",
@@ -74,12 +89,16 @@ _NER_ETIQUETAS = {
     "MISC": "Misceláneo",
 }
 
-# Caché de pipelines ya cargados (lazy loading).
+# Caché de modelos / pipelines ya cargados (lazy loading).
 _PIPELINES = {}
 
 
 def _get_pipeline(tarea: str):
-    """Devuelve (cacheado) el pipeline de HuggingFace para la tarea dada."""
+    """Devuelve (cacheado) el pipeline de HuggingFace para tareas basadas en pipeline.
+
+    Sólo se usa para sentiment / zeroshot / ner, cuyos nombres de tarea siguen
+    existiendo en transformers 4.x y 5.x.
+    """
     if tarea not in _PIPELINES:
         from transformers import pipeline
         cfg = MODELOS_NLP[tarea]
@@ -88,6 +107,23 @@ def _get_pipeline(tarea: str):
             kwargs["aggregation_strategy"] = "simple"
         _PIPELINES[tarea] = pipeline(cfg["tarea_hf"], model=cfg["modelo"], **kwargs)
     return _PIPELINES[tarea]
+
+
+def _get_modelo_directo(tarea: str, auto_clase):
+    """Carga (cacheado) tokenizer + modelo directamente, sin pipeline.
+
+    Se usa para summary (seq2seq) y qa, cuyas tareas de pipeline se eliminaron
+    en transformers 5.x. Cargar el modelo a mano funciona en cualquier versión.
+    """
+    clave = f"__directo__{tarea}"
+    if clave not in _PIPELINES:
+        from transformers import AutoTokenizer
+        cfg = MODELOS_NLP[tarea]
+        tok = AutoTokenizer.from_pretrained(cfg["modelo"])
+        mdl = auto_clase.from_pretrained(cfg["modelo"])
+        mdl.eval()
+        _PIPELINES[clave] = (tok, mdl)
+    return _PIPELINES[clave]
 
 
 def analizar(tarea: str, texto: str, opciones: dict = None) -> dict:
@@ -118,14 +154,11 @@ def analizar(tarea: str, texto: str, opciones: dict = None) -> dict:
 
     if tarea == "sentiment":
         clf = _get_pipeline(tarea)
-        r = clf(texto[:512])[0]
+        r = clf(texto[:512], truncation=True)[0]
         return {"tipo": "sentiment", "label": str(r["label"]), "score": float(r["score"])}
 
     if tarea == "summary":
-        s = _get_pipeline(tarea)
-        entrada = texto[:3000]
-        r = s(entrada, max_length=140, min_length=30, do_sample=False)[0]
-        return {"tipo": "summary", "resumen": r["summary_text"].strip()}
+        return _resumir(texto)
 
     if tarea == "zeroshot":
         labels = opciones.get("labels") or []
@@ -145,6 +178,9 @@ def analizar(tarea: str, texto: str, opciones: dict = None) -> dict:
         agrupado = {}
         for e in entidades:
             grupo = e.get("entity_group") or e.get("entity") or "MISC"
+            # Normalizar etiquetas tipo "B-PER" / "I-LOC" -> "PER" / "LOC"
+            if "-" in grupo:
+                grupo = grupo.split("-")[-1]
             # Limpiar artefactos de subpalabras (##) del tokenizador
             palabra = str(e.get("word", "")).replace(" ##", "").replace("##", "").strip()
             if not palabra or len(palabra) < 2:
@@ -161,19 +197,79 @@ def analizar(tarea: str, texto: str, opciones: dict = None) -> dict:
                 "entidades": [{"texto": p, "score": s} for p, s in ordenadas],
             })
         grupos.sort(key=lambda g: len(g["entidades"]), reverse=True)
+        if not grupos:
+            return {"tipo": "ner", "grupos": [], "aviso": "No se detectaron entidades nombradas en el texto."}
         return {"tipo": "ner", "grupos": grupos}
 
     if tarea == "qa":
         pregunta = (opciones.get("pregunta") or "").strip()
         if not pregunta:
             raise ValueError("Escribe una pregunta para el modelo.")
-        qa = _get_pipeline(tarea)
-        r = qa(question=pregunta, context=texto[:3000])
+        return _preguntar(pregunta, texto)
+
+    raise ValueError(f"Modelo de NLP no implementado: '{tarea}'.")
+
+
+def _resumir(texto: str) -> dict:
+    """Resumen con un modelo seq2seq (DistilBART), sin depender del pipeline."""
+    import torch
+    from transformers import AutoModelForSeq2SeqLM
+
+    tok, mdl = _get_modelo_directo("summary", AutoModelForSeq2SeqLM)
+    entrada = texto[:3000]
+    inputs = tok(entrada, return_tensors="pt", truncation=True, max_length=1024)
+    with torch.no_grad():
+        ids = mdl.generate(
+            **inputs,
+            max_length=160,
+            min_length=30,
+            num_beams=4,
+            no_repeat_ngram_size=3,
+            early_stopping=True,
+        )
+    resumen = tok.decode(ids[0], skip_special_tokens=True).strip()
+    if not resumen:
+        raise ValueError("El modelo no pudo generar un resumen para este texto.")
+    return {"tipo": "summary", "resumen": resumen}
+
+
+def _preguntar(pregunta: str, texto: str) -> dict:
+    """QA extractivo cargando el modelo directamente (compatible 4.x y 5.x)."""
+    import torch
+    from transformers import AutoModelForQuestionAnswering
+
+    tok, mdl = _get_modelo_directo("qa", AutoModelForQuestionAnswering)
+    inputs = tok(
+        pregunta,
+        texto[:3000],
+        return_tensors="pt",
+        truncation="only_second",
+        max_length=512,
+        padding=True,
+    )
+    with torch.no_grad():
+        salida = mdl(**inputs)
+
+    inicio_logits = salida.start_logits[0]
+    fin_logits = salida.end_logits[0]
+    inicio = int(torch.argmax(inicio_logits))
+    fin = int(torch.argmax(fin_logits)) + 1
+    if fin <= inicio:
+        fin = inicio + 1
+
+    ids = inputs["input_ids"][0][inicio:fin]
+    respuesta = tok.decode(ids, skip_special_tokens=True).strip()
+
+    # Score = producto de las probabilidades softmax de inicio y fin.
+    p_inicio = torch.softmax(inicio_logits, dim=-1)[inicio]
+    p_fin = torch.softmax(fin_logits, dim=-1)[min(fin - 1, len(fin_logits) - 1)]
+    score = float(p_inicio * p_fin)
+
+    if not respuesta:
         return {
             "tipo": "qa",
             "pregunta": pregunta,
-            "respuesta": str(r.get("answer", "")).strip(),
-            "score": float(r.get("score", 0.0)),
+            "respuesta": "No encontré una respuesta clara en el texto.",
+            "score": 0.0,
         }
-
-    raise ValueError(f"Modelo de NLP no implementado: '{tarea}'.")
+    return {"tipo": "qa", "pregunta": pregunta, "respuesta": respuesta, "score": score}

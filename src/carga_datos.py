@@ -546,9 +546,13 @@ class WebScraper:
             import os
             os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
             from transformers import pipeline
-            # Usar modelo de análisis de sentimientos por defecto (ligero)
-            classifier = pipeline("sentiment-analysis")
-            resultado = classifier(texto_limpio[:512])[0]
+            # 'text-classification' es el nombre de tarea válido en transformers 4.x y 5.x
+            # (el alias 'sentiment-analysis' se eliminó en 5.x).
+            classifier = pipeline(
+                "text-classification",
+                model="distilbert-base-uncased-finetuned-sst-2-english",
+            )
+            resultado = classifier(texto_limpio[:512], truncation=True)[0]
             
             return {
                 "texto": texto_limpio[:500] + "...", 
