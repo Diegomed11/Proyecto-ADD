@@ -37,6 +37,8 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+      # Datos de ejemplo (tabla 'estudiantes'): se cargan en el primer arranque.
+      - ./deploy/seed/postgres-seed.sql:/docker-entrypoint-initdb.d/seed.sql:ro
     restart: unless-stopped
 
   mongo:
@@ -47,6 +49,8 @@ services:
       - "27017:27017"
     volumes:
       - mongodata:/data/db
+      # Datos de ejemplo (colección 'productos' en apcd_demo): primer arranque.
+      - ./deploy/seed/mongo-seed.js:/docker-entrypoint-initdb.d/seed.js:ro
     restart: unless-stopped
 
 volumes:
