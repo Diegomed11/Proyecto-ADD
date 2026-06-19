@@ -1,0 +1,387 @@
+{% extends "base.html" %}
+
+{% block title %}Reporte automático{% endblock %}
+{% block breadcrumb %}~/reporte{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="stagger-1 flex items-center gap-3">
+        <span class="w-[46px] h-[46px] rounded-[13px] flex items-center justify-center shrink-0" style="background:#0e766b;box-shadow:0 8px 20px rgba(14,118,107,0.28)">
+            <span class="material-symbols-outlined text-[24px]" style="color:#fff;font-variation-settings:'FILL' 1;">auto_awesome</span>
+        </span>
+        <div>
+            <h2 class="text-h2 text-on-surface">Reporte automático</h2>
+            <p class="text-on-surface-variant text-sm mt-1">Un clic y obtienes calidad de datos, hallazgos, limpieza sugerida y el mejor modelo — todo en un informe descargable.</p>
+        </div>
+    </div>
+
+    <!-- Selector + acción -->
+    <section class="panel rounded-lg p-5 stagger-2">
+        <label class="block text-[11px] font-mono text-on-surface-variant mb-2">fuente a analizar</label>
+        <div class="flex flex-col sm:flex-row gap-3">
+            <select id="report-source" class="flex-1 rounded-md px-3 py-2.5 text-sm custom-select font-mono">
+                <option value="">Selecciona una fuente...</option>
+            </select>
+            <button id="report-run-btn" onclick="runReport()" class="btn-primary px-6 py-2.5 rounded-md text-sm flex items-center justify-center gap-2 whitespace-nowrap">
+                <span class="material-symbols-outlined text-[20px]">auto_awesome</span>
+                Analizar todo
+            </button>
+        </div>
+        <p id="report-no-sources" class="hidden mt-3 text-xs text-warning-text flex items-center gap-2">
+            <span class="material-symbols-outlined text-[15px]">info</span>
+            No hay datos en memoria. Carga un archivo en <span class="font-medium">Resumen</span> primero.
+        </p>
+    </section>
+
+    <!-- Loading -->
+    <div id="report-loading" class="hidden flex flex-col items-center justify-center h-[280px]">
+        <div class="luma-spin"><span></span><span></span></div>
+        <p class="text-on-surface-variant mt-4 text-xs font-mono uppercase tracking-wider">Analizando todo el dataset…</p>
+        <p class="text-on-surface-dim mt-1 text-[11px] font-mono">calidad · hallazgos · limpieza · modelado</p>
+    </div>
+
+    <!-- Empty -->
+    <div id="report-empty" class="flex flex-col items-center justify-center h-[260px] border border-dashed border-line-strong rounded-lg stagger-3">
+        <div class="w-14 h-14 rounded-lg border border-border-glass bg-surface flex items-center justify-center mb-4">
+            <span class="material-symbols-outlined text-on-surface-dim text-[28px]">summarize</span>
+        </div>
+        <p class="text-on-surface-variant text-sm max-w-sm text-center">Elige una fuente y pulsa <span class="text-on-surface">Analizar todo</span> para generar el informe completo.</p>
+    </div>
+
+    <!-- Resultados -->
+    <div id="report-results" class="hidden space-y-4">
+
+        <!-- Cabecera del informe + descargar -->
+        <section class="panel rounded-lg p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3" style="animation: fadeUp 0.4s ease-out both">
+            <div>
+                <h3 class="text-base font-semibold text-on-surface" id="report-title">Informe</h3>
+                <p class="text-xs font-mono text-on-surface-dim mt-1" id="report-dims"></p>
+            </div>
+            <div class="flex items-center gap-2 self-start sm:self-auto">
+                <span class="text-[11px] font-mono text-on-surface-dim mr-1">descargar:</span>
+                <button onclick="exportReport('pdf')" class="btn-secondary px-3 py-2 rounded-md text-sm flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[17px]">picture_as_pdf</span> PDF
+                </button>
+                <button onclick="exportReport('docx')" class="btn-secondary px-3 py-2 rounded-md text-sm flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[17px]">description</span> Word
+                </button>
+                <button onclick="downloadReport()" class="btn-secondary px-3 py-2 rounded-md text-sm flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[17px]">code</span> HTML
+                </button>
+            </div>
+        </section>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <!-- Score de calidad -->
+            <section class="panel rounded-lg p-5 flex flex-col" style="animation: fadeUp 0.4s ease-out 0.04s both">
+                <div class="flex items-center gap-2.5 mb-4">
+                    <span class="material-symbols-outlined text-on-surface-dim text-[18px]">verified</span>
+                    <h4 class="text-sm font-semibold text-on-surface">Calidad de datos</h4>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="relative w-24 h-24 shrink-0">
+                        <svg viewBox="0 0 36 36" class="w-24 h-24 -rotate-90">
+                            <path d="M18 2.5 a 15.5 15.5 0 0 1 0 31 a 15.5 15.5 0 0 1 0 -31" fill="none" stroke="#2A2A30" stroke-width="3"/>
+                            <path id="score-arc" d="M18 2.5 a 15.5 15.5 0 0 1 0 31 a 15.5 15.5 0 0 1 0 -31" fill="none" stroke="#F59E0B" stroke-width="3" stroke-linecap="round" stroke-dasharray="0, 100"/>
+                        </svg>
+                        <div class="absolute inset-0 flex flex-col items-center justify-center">
+                            <span id="score-num" class="font-mono text-2xl font-bold text-on-surface tnum">0</span>
+                            <span id="score-grade" class="font-mono text-[11px] text-primary">—</span>
+                        </div>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p id="score-resumen" class="text-sm text-on-surface-variant leading-snug"></p>
+                    </div>
+                </div>
+                <div id="score-factores" class="mt-4 space-y-1.5"></div>
+            </section>
+
+            <!-- Hallazgos -->
+            <section class="lg:col-span-2 panel rounded-lg p-5" style="animation: fadeUp 0.4s ease-out 0.08s both">
+                <div class="flex items-center gap-2.5 mb-4">
+                    <span class="material-symbols-outlined text-primary text-[18px]">lightbulb</span>
+                    <h4 class="text-sm font-semibold text-on-surface">Hallazgos clave</h4>
+                </div>
+                <div id="report-observations" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5"></div>
+            </section>
+        </div>
+
+        <!-- Limpieza sugerida -->
+        <section class="panel rounded-lg overflow-hidden" style="animation: fadeUp 0.4s ease-out 0.12s both">
+            <div class="px-5 py-3.5 border-b border-border-glass flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <span class="material-symbols-outlined text-on-surface-dim text-[18px]">cleaning_services</span>
+                    <h4 class="text-sm font-semibold text-on-surface">Limpieza sugerida</h4>
+                </div>
+                <a href="/etl" class="text-xs font-mono text-primary hover:underline flex items-center gap-1">
+                    aplicar en Limpieza <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+                </a>
+            </div>
+            <div class="p-5">
+                <div id="report-clean-diff" class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4"></div>
+                <div id="report-clean-log" class="space-y-1.5"></div>
+            </div>
+        </section>
+
+        <!-- Modelado automático -->
+        <section class="panel rounded-lg overflow-hidden" style="animation: fadeUp 0.4s ease-out 0.16s both">
+            <div class="px-5 py-3.5 border-b border-border-glass flex items-center gap-2.5">
+                <span class="material-symbols-outlined text-on-surface-dim text-[18px]">model_training</span>
+                <h4 class="text-sm font-semibold text-on-surface">Modelado automático</h4>
+            </div>
+            <div id="report-modeling" class="p-5"></div>
+        </section>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let lastReport = null;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        try {
+            const res = await fetch('/api/sources');
+            const data = await res.json();
+            const sel = document.getElementById('report-source');
+            (data.sources || []).forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.name;
+                opt.textContent = `${s.name} (${s.rows} filas, ${s.cols} cols)`;
+                sel.appendChild(opt);
+            });
+            document.getElementById('report-no-sources').classList.toggle('hidden', (data.sources || []).length > 0);
+        } catch (e) { console.error(e); }
+    });
+
+    async function runReport() {
+        const source = document.getElementById('report-source').value;
+        if (!source) { showToast('Selecciona una fuente', 'warning'); return; }
+
+        document.getElementById('report-empty').classList.add('hidden');
+        document.getElementById('report-results').classList.add('hidden');
+        document.getElementById('report-loading').classList.remove('hidden');
+        const btn = document.getElementById('report-run-btn');
+        btn.disabled = true;
+
+        try {
+            const res = await fetch(`/api/report/${encodeURIComponent(source)}`);
+            const data = await res.json();
+            document.getElementById('report-loading').classList.add('hidden');
+            btn.disabled = false;
+
+            if (!res.ok) {
+                document.getElementById('report-empty').classList.remove('hidden');
+                showToast(data.detail || 'No se pudo generar el reporte', 'error');
+                return;
+            }
+            lastReport = data;
+            renderReport(data);
+            document.getElementById('report-results').classList.remove('hidden');
+            showToast('Informe generado', 'success');
+        } catch (e) {
+            document.getElementById('report-loading').classList.add('hidden');
+            document.getElementById('report-empty').classList.remove('hidden');
+            btn.disabled = false;
+            showToast('Error de red', 'error');
+        }
+    }
+
+    function gradeColor(grade) {
+        return { A: '#4ADE80', B: '#A3E635', C: '#FBBF24', D: '#FB923C', F: '#F87171' }[grade] || '#F59E0B';
+    }
+
+    function renderReport(d) {
+        document.getElementById('report-title').textContent = `Informe de ${d.source}`;
+        document.getElementById('report-dims').textContent =
+            `${d.dimensions.rows.toLocaleString()} filas · ${d.dimensions.cols} columnas · ` +
+            `${d.tipos.numericas.length} numéricas · ${d.tipos.categoricas.length} categóricas`;
+
+        // Score
+        const cal = d.calidad;
+        const col = gradeColor(cal.grade);
+        document.getElementById('score-num').textContent = cal.score;
+        const g = document.getElementById('score-grade');
+        g.textContent = `nota ${cal.grade}`; g.style.color = col;
+        document.getElementById('score-resumen').textContent = cal.resumen;
+        const arc = document.getElementById('score-arc');
+        arc.setAttribute('stroke-dasharray', `${cal.score}, 100`);
+        arc.setAttribute('stroke', col);
+        const fact = document.getElementById('score-factores');
+        fact.innerHTML = (cal.factores.length ? cal.factores : []).map(f => `
+            <div class="flex items-center justify-between text-xs">
+                <span class="text-on-surface-variant truncate pr-2" title="${f.detalle}">${f.nombre}</span>
+                <span class="font-mono text-error-text tnum shrink-0">-${f.penalizacion}</span>
+            </div>`).join('') ||
+            '<p class="text-xs text-success-text flex items-center gap-1.5"><span class="material-symbols-outlined text-[15px]">check_circle</span>Sin penalizaciones</p>';
+
+        // Observaciones
+        const estilos = {
+            warning: { icon: 'warning', color: 'text-warning-text', bd: 'border-warning-text/25' },
+            success: { icon: 'check_circle', color: 'text-success-text', bd: 'border-success-text/25' },
+            info: { icon: 'info', color: 'text-info-text', bd: 'border-info-text/25' },
+        };
+        document.getElementById('report-observations').innerHTML = (d.observaciones || []).map(o => {
+            const s = estilos[o.nivel] || estilos.info;
+            return `<div class="flex items-start gap-2.5 bg-surface-2 border ${s.bd} rounded-md px-3.5 py-2.5">
+                <span class="material-symbols-outlined text-[18px] ${s.color} mt-px shrink-0">${s.icon}</span>
+                <span class="text-sm text-on-surface-variant leading-snug">${o.texto}</span></div>`;
+        }).join('') || '<p class="text-sm text-on-surface-dim">Sin observaciones.</p>';
+
+        // Limpieza
+        const a = d.limpieza_sugerida.antes, b = d.limpieza_sugerida.despues;
+        const diffCard = (label, key) => {
+            const delta = b[key] - a[key];
+            const mejora = (key === 'nulos' || key === 'duplicados') ? delta < 0 : true;
+            const cls = delta === 0 ? 'text-on-surface-dim' : (mejora && delta !== 0 ? 'text-success-text' : 'text-warning-text');
+            return `<div class="rounded-md border border-border-glass bg-surface-2 p-3">
+                <p class="text-[11px] font-mono uppercase tracking-wider text-on-surface-dim mb-1">${label}</p>
+                <p class="font-mono text-lg font-semibold tnum text-on-surface">${b[key].toLocaleString()}</p>
+                <p class="text-[11px] font-mono ${cls}">${delta > 0 ? '+' : ''}${delta} vs ${a[key].toLocaleString()}</p>
+            </div>`;
+        };
+        document.getElementById('report-clean-diff').innerHTML =
+            diffCard('Filas', 'filas') + diffCard('Columnas', 'columnas') +
+            diffCard('Nulos', 'nulos') + diffCard('Duplicados', 'duplicados');
+        const log = d.limpieza_sugerida.log || [];
+        document.getElementById('report-clean-log').innerHTML = log.length
+            ? log.map(e => `<div class="flex items-start gap-2 text-xs"><span class="material-symbols-outlined text-[15px] text-primary mt-px">check</span><span class="text-on-surface-variant"><span class="text-on-surface">${e.paso}:</span> ${e.detalle}</span></div>`).join('')
+            : '<p class="text-xs text-success-text flex items-center gap-1.5"><span class="material-symbols-outlined text-[15px]">check_circle</span>Los datos ya están limpios.</p>';
+
+        // Modelado
+        renderReportModeling(d.modelado);
+    }
+
+    function renderReportModeling(m) {
+        const cont = document.getElementById('report-modeling');
+        if (!m || !m.disponible) {
+            cont.innerHTML = `<p class="text-sm text-on-surface-dim flex items-center gap-2"><span class="material-symbols-outlined text-[18px]">info</span>${(m && m.motivo) || 'No se pudo modelar automáticamente.'}</p>`;
+            return;
+        }
+        const tipoTxt = { clasificacion: 'Clasificación', regresion: 'Regresión', clustering: 'Agrupamiento (no supervisado)' }[m.tipo] || m.tipo;
+        let head = `<div class="flex flex-wrap items-center gap-2 mb-4 text-xs font-mono">
+            <span class="px-2 py-1 rounded border border-border-glass bg-surface-2 text-on-surface-variant">${tipoTxt}</span>`;
+        if (m.objetivo) head += `<span class="text-on-surface-dim">objetivo:</span> <span class="text-primary">${m.objetivo}</span>`;
+        head += `</div>`;
+
+        const filas = (m.comparacion || []).map(c => {
+            const esRec = c.nombre === m.recomendado;
+            return `<div class="flex items-start justify-between gap-3 p-3 rounded-md border ${esRec ? 'border-primary/40 bg-primary/[0.06]' : 'border-border-glass bg-surface-2'}">
+                <div class="min-w-0">
+                    <div class="flex items-center gap-2">
+                        <p class="text-sm font-semibold text-on-surface">${c.nombre}</p>
+                        ${esRec ? '<span class="text-[10px] font-mono uppercase tracking-wider text-primary border border-primary/40 rounded px-1.5 py-0.5">recomendado</span>' : ''}
+                    </div>
+                    <p class="text-xs text-on-surface-dim leading-snug mt-1">${c.interpretacion}</p>
+                </div>
+                <div class="text-right shrink-0">
+                    <p class="font-mono text-lg font-semibold tnum ${esRec ? 'text-primary' : 'text-on-surface'}">${c.valor}</p>
+                    <p class="text-[10px] font-mono text-on-surface-dim">${c.metrica}</p>
+                </div>
+            </div>`;
+        }).join('');
+        cont.innerHTML = head + `<div class="space-y-2.5">${filas}</div>`;
+    }
+
+    // ── Descargar como PDF / DOCX (generado en el servidor) ───────────
+    async function exportReport(formato) {
+        if (!lastReport) { showToast('Genera primero un informe', 'warning'); return; }
+        showToast(`Generando ${formato.toUpperCase()}…`, 'info');
+        try {
+            const res = await fetch(`/api/report/export?formato=${formato}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(lastReport),
+            });
+            if (!res.ok) {
+                let msg = 'No se pudo generar el documento';
+                try { msg = (await res.json()).detail || msg; } catch (e) {}
+                showToast(msg, 'error');
+                return;
+            }
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const safe = lastReport.source.replace(/[^a-z0-9]/gi, '_');
+            a.download = `informe_${safe}.${formato}`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast(`${formato.toUpperCase()} descargado`, 'success');
+        } catch (e) {
+            showToast('Error de red al exportar', 'error');
+        }
+    }
+
+    // ── Descargar informe como HTML autónomo ──────────────────────────
+    function downloadReport() {
+        if (!lastReport) return;
+        const d = lastReport;
+        const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const cal = d.calidad;
+
+        const obsHtml = (d.observaciones || []).map(o => `<li>${esc(o.texto)}</li>`).join('');
+        const corrHtml = (d.correlaciones_top || []).map(c =>
+            `<tr><td>${esc(c.a)}</td><td>${esc(c.b)}</td><td style="text-align:right">${c.valor.toFixed(2)}</td></tr>`).join('') ||
+            '<tr><td colspan="3">Sin correlaciones numéricas.</td></tr>';
+        const logHtml = (d.limpieza_sugerida.log || []).map(e => `<li><b>${esc(e.paso)}:</b> ${esc(e.detalle)}</li>`).join('') ||
+            '<li>Los datos ya están limpios.</li>';
+        let modelHtml = '';
+        const m = d.modelado;
+        if (m && m.disponible) {
+            modelHtml = (m.comparacion || []).map(c =>
+                `<tr><td>${esc(c.nombre)}${c.nombre === m.recomendado ? ' <b>(recomendado)</b>' : ''}</td><td>${esc(c.metrica)}</td><td style="text-align:right">${esc(c.valor)}</td></tr>`).join('');
+        } else {
+            modelHtml = `<tr><td colspan="3">${esc((m && m.motivo) || 'No disponible')}</td></tr>`;
+        }
+
+        const html = `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">
+<title>Informe — ${esc(d.source)}</title>
+<style>
+  body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;max-width:820px;margin:40px auto;padding:0 20px;color:#1a1a1a;line-height:1.5}
+  h1{font-size:24px;margin-bottom:4px} h2{font-size:17px;margin-top:32px;border-bottom:2px solid #F59E0B;padding-bottom:4px}
+  .meta{color:#666;font-size:13px;font-family:monospace}
+  .score{display:inline-block;font-size:40px;font-weight:700;color:${gradeColor(cal.grade)}}
+  .grade{font-size:15px;color:#666}
+  table{width:100%;border-collapse:collapse;margin-top:8px;font-size:14px}
+  th,td{border:1px solid #ddd;padding:6px 10px;text-align:left} th{background:#f5f5f5}
+  ul{font-size:14px} .foot{margin-top:40px;color:#999;font-size:12px;border-top:1px solid #eee;padding-top:12px}
+</style></head><body>
+  <h1>Informe automático de datos</h1>
+  <p class="meta">Fuente: ${esc(d.source)} · ${d.dimensions.rows} filas × ${d.dimensions.cols} columnas</p>
+
+  <h2>Calidad de datos</h2>
+  <p><span class="score">${cal.score}</span><span class="grade">/100 · nota ${cal.grade}</span></p>
+  <p>${esc(cal.resumen)}</p>
+  ${cal.factores.length ? '<ul>' + cal.factores.map(f => `<li>${esc(f.nombre)} (−${f.penalizacion}): ${esc(f.detalle)}</li>`).join('') + '</ul>' : ''}
+
+  <h2>Hallazgos clave</h2>
+  <ul>${obsHtml || '<li>Sin observaciones.</li>'}</ul>
+
+  <h2>Correlaciones más fuertes</h2>
+  <table><tr><th>Variable A</th><th>Variable B</th><th>Correlación</th></tr>${corrHtml}</table>
+
+  <h2>Limpieza sugerida</h2>
+  <p class="meta">Filas ${d.limpieza_sugerida.antes.filas} → ${d.limpieza_sugerida.despues.filas} ·
+     Columnas ${d.limpieza_sugerida.antes.columnas} → ${d.limpieza_sugerida.despues.columnas} ·
+     Nulos ${d.limpieza_sugerida.antes.nulos} → ${d.limpieza_sugerida.despues.nulos}</p>
+  <ul>${logHtml}</ul>
+
+  <h2>Modelado automático</h2>
+  ${m && m.disponible && m.objetivo ? `<p class="meta">Objetivo: ${esc(m.objetivo)} · Tipo: ${esc(m.tipo)}</p>` : ''}
+  <table><tr><th>Modelo</th><th>Métrica</th><th>Valor</th></tr>${modelHtml}</table>
+
+  <p class="foot">Generado por APCD — Pipeline de Análisis de Datos.</p>
+</body></html>`;
+
+        const blob = new Blob([html], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `informe_${d.source.replace(/[^a-z0-9]/gi, '_')}.html`;
+        a.click();
+        URL.revokeObjectURL(url);
+        if (window.showToast) showToast('Informe descargado', 'success');
+    }
+</script>
+{% endblock %}

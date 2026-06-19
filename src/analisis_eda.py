@@ -211,3 +211,96 @@ class AnalizadorExploratorio:
                         "texto": f"«{peor_out[0]}» tiene {peor_out[1]} valores atípicos ({pct}%) según el método IQR."})
 
         return obs
+
+    def calidad_datos(self) -> dict:
+        """
+        Calcula una puntuación de calidad de datos de 0 a 100 con su desglose.
+
+        Penaliza nulos, duplicados, columnas constantes y columnas de texto que
+        en realidad son números o fechas (tipos mal detectados).
+
+        Returns
+        -------
+        dict
+            {'score': int, 'grade': str, 'factores': [...], 'resumen': str}
+        """
+        filas = len(self._datos)
+        cols = len(self._datos.columns)
+        factores = []
+        score = 100.0
+
+        if filas == 0 or cols == 0:
+            return {"score": 0, "grade": "F", "factores": [],
+                    "resumen": "El dataset está vacío."}
+
+        # 1. Nulos (ratio global de celdas vacías)
+        celdas = filas * cols
+        n_nulos = int(self._datos.isnull().sum().sum())
+        ratio_nulos = n_nulos / celdas if celdas else 0
+        pen_nulos = min(35.0, round(ratio_nulos * 100 * 1.5, 1))
+        if pen_nulos > 0:
+            factores.append({"nombre": "Valores faltantes",
+                             "penalizacion": round(pen_nulos),
+                             "detalle": f"{n_nulos} celdas nulas ({ratio_nulos * 100:.1f}% del total)."})
+        score -= pen_nulos
+
+        # 2. Duplicados
+        dup = int(self._datos.duplicated().sum())
+        ratio_dup = dup / filas if filas else 0
+        pen_dup = min(20.0, round(ratio_dup * 100, 1))
+        if pen_dup > 0:
+            factores.append({"nombre": "Filas duplicadas",
+                             "penalizacion": round(pen_dup),
+                             "detalle": f"{dup} filas repetidas ({ratio_dup * 100:.1f}%)."})
+        score -= pen_dup
+
+        # 3. Columnas constantes (sin información)
+        constantes = [c for c in self._datos.columns
+                      if self._datos[c].nunique(dropna=True) <= 1]
+        pen_const = min(18.0, len(constantes) * 6.0)
+        if pen_const > 0:
+            factores.append({"nombre": "Columnas constantes",
+                             "penalizacion": round(pen_const),
+                             "detalle": f"{len(constantes)} columna(s) con un solo valor: {', '.join(constantes[:3])}."})
+        score -= pen_const
+
+        # 4. Tipos mal detectados (texto que es número o fecha)
+        mal_tipadas = []
+        for c in self._datos.select_dtypes(include=["object"]).columns:
+            serie = self._datos[c]
+            no_nulos = serie.notna().sum()
+            if no_nulos == 0:
+                continue
+            num = pd.to_numeric(serie, errors="coerce")
+            if num.notna().sum() / no_nulos >= 0.9:
+                mal_tipadas.append(c)
+                continue
+            try:
+                fec = pd.to_datetime(serie, errors="coerce", format="mixed")
+            except (ValueError, TypeError):
+                fec = pd.to_datetime(serie, errors="coerce")
+            if fec.notna().sum() / no_nulos >= 0.9:
+                mal_tipadas.append(c)
+        pen_tipos = min(15.0, len(mal_tipadas) * 5.0)
+        if pen_tipos > 0:
+            factores.append({"nombre": "Tipos mal detectados",
+                             "penalizacion": round(pen_tipos),
+                             "detalle": f"{len(mal_tipadas)} columna(s) de texto que son número/fecha: {', '.join(mal_tipadas[:3])}."})
+        score -= pen_tipos
+
+        score = int(max(0, min(100, round(score))))
+        if score >= 90:
+            grade, resumen = "A", "Datos en excelente estado, listos para analizar."
+        elif score >= 75:
+            grade, resumen = "B", "Buena calidad; unos retoques menores lo dejarían perfecto."
+        elif score >= 60:
+            grade, resumen = "C", "Calidad aceptable; conviene limpiar antes de modelar."
+        elif score >= 40:
+            grade, resumen = "D", "Calidad baja; la limpieza es muy recomendable."
+        else:
+            grade, resumen = "F", "Datos muy sucios; límpialos antes de usarlos."
+
+        if not factores:
+            resumen = "Sin problemas de calidad detectados."
+
+        return {"score": score, "grade": grade, "factores": factores, "resumen": resumen}

@@ -3,3 +3,6 @@ __pycache__/
 .env
 .claude/
 .agents/
+cartel-cert/
+apcd-handoff/
+*.zip

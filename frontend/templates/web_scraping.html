@@ -6,8 +6,8 @@
 {% block content %}
 <div class="space-y-6">
     <div class="stagger-1 flex items-center gap-3">
-        <span class="w-11 h-11 rounded-lg bg-white flex items-center justify-center shrink-0 overflow-hidden shadow-sm">
-            <img src="/static/icons/web-scraping.png" alt="" class="w-8 h-8 object-contain"/>
+        <span class="w-[46px] h-[46px] rounded-[13px] flex items-center justify-center shrink-0" style="background:#0e766b;box-shadow:0 8px 20px rgba(14,118,107,0.28)">
+            <span class="material-symbols-outlined text-[24px]" style="color:#fff">travel_explore</span>
         </span>
         <div>
             <h2 class="text-h2 text-on-surface">Web Scraping</h2>
@@ -38,7 +38,7 @@
 
     <!-- Loading extracción -->
     <div id="scrape-loading" class="hidden flex flex-col items-center justify-center h-[160px]">
-        <span class="material-symbols-outlined text-primary text-[32px] animate-spin">progress_activity</span>
+        <div class="luma-spin"><span></span><span></span></div>
         <p class="text-on-surface-variant mt-4 text-xs font-mono uppercase tracking-wider">Extrayendo página…</p>
     </div>
 
@@ -112,7 +112,7 @@
 
         <!-- Loading NLP -->
         <div id="nlp-loading" class="hidden flex flex-col items-center justify-center h-[160px]">
-            <span class="material-symbols-outlined text-primary text-[32px] animate-spin">progress_activity</span>
+            <div class="luma-spin"><span></span><span></span></div>
             <p id="nlp-loading-text" class="text-on-surface-variant mt-4 text-xs font-mono uppercase tracking-wider">Analizando…</p>
         </div>
 

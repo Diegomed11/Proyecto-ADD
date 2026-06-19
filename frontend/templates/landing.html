@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <meta name="description" content="Datia — Pipeline de Análisis de Datos. Carga, explora, limpia y modela tus datos sin escribir código."/>
+    <title>Datia · Pipeline de Análisis de Datos</title>
+    <link rel="icon" type="image/png" href="/static/icons/favicon.png"/>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300,0,0&display=swap" rel="stylesheet"/>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script src="/static/js/three.min.js"></script>
+    <script>
+    tailwind.config={ theme:{ fontFamily:{
+        'sans':['"Geist"','-apple-system','BlinkMacSystemFont','Segoe UI','sans-serif'],
+        'mono':['"Geist Mono"','ui-monospace','SFMono-Regular','Menlo','monospace'] },
+      extend:{ colors:{ primary:"#2fd6c0", ink:"#f2fbf8", muted:"#c8e4dd", dim:"#a6cdc5" } } } }
+    </script>
+    <style>
+        :root{ color-scheme:light; }
+        body{ background:#04141a; color:#eaf7f3; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
+        .mi{ font-family:'Material Symbols Rounded'; font-weight:normal; line-height:1; font-variation-settings:'FILL' 0,'wght' 350,'GRAD' 0,'opsz' 24; }
+        .mi.fill{ font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24; }
+        .tnum{ font-variant-numeric:tabular-nums; }
+        .relative.z-10 h1,.relative.z-10 h2,.relative.z-10 h3,.relative.z-10 p,.relative.z-10 footer,.relative.z-10 header,.relative.z-10 section > div > span{ text-shadow:0 1px 12px rgba(2,12,14,0.55); }
+        .card h3,.card p,.card b,.card span{ text-shadow:none; }
+
+        @keyframes blobA{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(7vw,5vh) scale(1.18)}}
+        @keyframes blobB{0%,100%{transform:translate(0,0) scale(1.1)}50%{transform:translate(-6vw,7vh) scale(0.92)}}
+        @keyframes blobC{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(5vw,-6vh) scale(1.22)}}
+        @keyframes blobD{0%,100%{transform:translate(0,0) scale(0.95)}50%{transform:translate(-7vw,-5vh) scale(1.12)}}
+        @keyframes blobE{0%,100%{transform:translate(0,0) scale(1.05)}50%{transform:translate(4vw,8vh) scale(0.9)}}
+        #aurora{position:fixed;inset:0;z-index:0;display:block;width:100vw;height:100vh}
+        #aurora-veil{position:fixed;inset:0;z-index:1;pointer-events:none;background:radial-gradient(125% 85% at 50% -5%, rgba(4,20,26,0) 0%, rgba(4,20,26,0.28) 52%, rgba(4,20,26,0.74) 100%)}
+
+        @property --ga{syntax:"<angle>";inherits:false;initial-value:0deg}
+        @keyframes gaRotate{to{--ga:360deg}}
+        .gborder{ position:relative; display:inline-flex; border-radius:14px; padding:2px; background:conic-gradient(from var(--ga,0deg), #0e766b 0%, #34d8c2 22%, #aaffe9 30%, #34d8c2 38%, #0e766b 50%, #34d8c2 72%, #aaffe9 80%, #34d8c2 88%, #0e766b 100%); animation:gaRotate 4s linear infinite; }
+        .gborder > a{ border-radius:12px; }
+        .gborder-block{ display:block; border-radius:20px; }
+        .gborder-block > .card{ border-radius:18px; width:100%; }
+        @media (prefers-reduced-motion:reduce){ .gborder{ animation:none; } }
+        @keyframes btnflow{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+        .btn-primary{ background:linear-gradient(110deg,#0e766b 0%,#2a9d8f 32%,#1f9082 50%,#33a791 68%,#0e766b 100%); background-size:220% 100%; animation:btnflow 6s ease infinite; color:#fff; box-shadow:0 10px 26px rgba(14,118,107,0.34); transition:filter .15s ease, transform .08s ease; }
+        .btn-primary:hover{ filter:brightness(1.06); }
+        .btn-primary:active{ transform:translateY(1px); }
+        .btn-ghost{ background:rgba(8,24,27,0.55); color:#eaf7f3; border:1px solid rgba(125,217,196,0.22); transition:background .15s ease; }
+        .btn-ghost:hover{ background:rgba(18,42,46,0.75); }
+
+        .card{ position:relative; background:rgba(8,24,27,0.5); border:1px solid rgba(125,217,196,0.16); box-shadow:0 14px 40px rgba(0,0,0,0.42); border-radius:18px; -webkit-backdrop-filter:blur(11px); backdrop-filter:blur(11px); }
+        @property --bspin{syntax:"<angle>";inherits:false;initial-value:0deg}
+        @keyframes bspin{to{--bspin:360deg}}
+        .card.glow::before{ content:""; position:absolute; inset:0; border-radius:inherit; padding:1.6px; pointer-events:none;
+            background:conic-gradient(from var(--bspin),transparent 0deg,transparent 248deg,color-mix(in srgb,#0e766b 55%,transparent) 300deg,#7fd9c4 334deg,#0e766b 352deg,transparent 360deg);
+            -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0); -webkit-mask-composite:xor;
+            mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0); mask-composite:exclude; animation:bspin 6s linear infinite; }
+        .tile{ width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:#0e766b;box-shadow:0 8px 18px rgba(14,118,107,0.28); }
+        @keyframes drawLine{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+        .hw-wrap{ position:relative; display:inline-block; }
+        .hw-svg{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:138%; height:240%; overflow:visible; color:#34d8c2; pointer-events:none; }
+        .hw-svg path{ fill:none; stroke:currentColor; stroke-width:6; stroke-linecap:round; stroke-linejoin:round; stroke-dasharray:1; stroke-dashoffset:1; opacity:.85; }
+        .hw-wrap.draw .hw-svg path{ animation:hwDraw 2.2s cubic-bezier(.43,.13,.23,.96) forwards; }
+        @keyframes hwDraw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+        @media (prefers-reduced-motion:reduce){ .hw-svg path{ stroke-dashoffset:0; } }
+        .hl-wrap{ position:relative; display:inline-block; }
+        .gooey{ display:block; position:relative; }
+        .gooey-defs{ position:absolute; width:0; height:0; }
+        .gooey-stage{ position:relative; display:block; height:1.55em; filter:url(#threshold); }
+        .gooey-t{ position:absolute; left:0; right:0; top:0; width:100%; text-align:center; color:#ffffff; white-space:nowrap; font-size:1.3em; line-height:1.1; }
+        .hl-svg{ position:absolute; left:-1%; bottom:-0.26em; width:102%; height:0.42em; overflow:visible; color:#34d8c2; pointer-events:none; }
+        .hl-svg path{ stroke:currentColor; stroke-width:2.4; fill:none; stroke-linecap:round; stroke-dasharray:1; stroke-dashoffset:1; animation:drawLine 1.5s ease-in-out .35s forwards; }
+        @media (prefers-reduced-motion:reduce){ .hl-svg path{ animation:none; stroke-dashoffset:0; } }
+        @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+        .fade{ animation:fadeUp .5s ease-out both; }
+        .reveal{ opacity:0; transform:translateY(28px); transition:opacity .7s cubic-bezier(.16,.84,.44,1), transform .7s cubic-bezier(.16,.84,.44,1); }
+        .zoom-card{ position:relative; transform-origin:center; background:#0c2024; -webkit-backdrop-filter:none; backdrop-filter:none; transition:transform .2s ease-out, opacity .2s ease-out; will-change:transform,opacity; }
+        .holo{ transition:transform .18s ease-out, opacity .7s cubic-bezier(.16,.84,.44,1); transform-style:preserve-3d; }
+        .holo::after{ content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none; mix-blend-mode:screen; background:radial-gradient(circle 260px at var(--mx,50%) var(--my,50%), rgba(255,95,158,0.40), rgba(167,139,250,0.34) 24%, rgba(56,189,248,0.30) 44%, rgba(52,216,194,0.26) 64%, transparent 82%); opacity:0; transition:opacity .25s ease; z-index:1; }
+        .holo:hover::after{ opacity:1; }
+        .stk{ transition:transform .28s ease, box-shadow .28s ease, border-color .28s ease, opacity .7s cubic-bezier(.16,.84,.44,1); }
+        .stk:hover{ transform:translateY(-6px); border-color:rgba(52,216,194,0.5); box-shadow:0 18px 44px rgba(0,0,0,0.5), 0 0 0 1px rgba(52,216,194,0.28); transition-delay:0s; }
+        .stk .stk-ico{ transition:transform .28s ease, background .28s ease; }
+        .stk:hover .stk-ico{ transform:scale(1.1); background:rgba(47,214,192,0.3); }
+        .holo > *{ position:relative; z-index:2; }
+        @media (prefers-reduced-motion:reduce){ .holo{ transition:none; } }
+        @media (prefers-reduced-motion:reduce){ .zoom-card{ transform:none!important; opacity:1!important; } }
+        .reveal-words{ display:flex; flex-wrap:wrap; justify-content:center; gap:0 .34em; }
+        .reveal-words .wr{ color:#c8e4dd; opacity:.18; transition:opacity .2s linear; }
+        .reveal-words .wr-b{ font-weight:700; color:#f2fbf8; }
+        @media (prefers-reduced-motion:reduce){ .reveal-words .wr{ opacity:1; } }
+        .reveal.in{ opacity:1; transform:none; }
+        @media (prefers-reduced-motion:reduce){ .reveal{ opacity:1!important; transform:none!important; } }
+        @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important}}
+        html{scroll-behavior:smooth}
+    </style>
+</head>
+<body class="font-sans relative">
+
+    <!-- Fondo aurora (WebGL) -->
+    <canvas id="aurora" aria-hidden="true"></canvas>
+    <div id="aurora-veil" aria-hidden="true"></div>
+
+    <div class="relative z-10">
+
+        <!-- Nav -->
+        <header class="max-w-[1180px] mx-auto px-6 min-h-[88px] py-3 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
+            <div></div>
+            <div class="flex items-center gap-3 justify-center">
+                <span class="w-12 h-12 rounded-2xl flex items-center justify-center" style="background:#0e766b;box-shadow:0 6px 16px rgba(14,118,107,0.32)">
+                    <span class="mi fill text-[28px]" style="color:#fff">graph_3</span>
+                </span>
+                <div class="font-extrabold text-[34px] tracking-tight">Datia</div>
+            </div>
+            <div class="text-right leading-snug justify-self-end">
+                <div class="font-mono text-[9.5px] tracking-[0.16em] uppercase text-dim mb-1">Desarrollado por</div>
+                <div class="flex flex-wrap justify-end gap-x-2 gap-y-0.5 text-[12px] text-muted max-w-[340px]">
+                    <span>Diego Medina Medina</span><span class="text-dim">·</span>
+                    <span>Morales Vega Juan Pablo</span><span class="text-dim">·</span>
+                    <span>Reynoso Pablo Edgar Andrés</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Hero -->
+        <section class="max-w-[1180px] mx-auto px-6 pt-12 pb-16 text-center fade">
+            <h1 class="font-extrabold tracking-tight leading-[1.05] text-[clamp(2.2rem,6vw,4rem)] max-w-[920px] mx-auto">
+                <span class="gooey" data-gooey>
+                    <svg class="gooey-defs" aria-hidden="true"><defs><filter id="threshold"><feColorMatrix in="SourceGraphic" type="matrix" values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 255 -140"></feColorMatrix></filter></defs></svg>
+                    <span class="gooey-stage"><span class="gooey-t" data-g1></span><span class="gooey-t" data-g2></span></span>
+                </span>
+                <span class="hl-wrap" style="color:#34d8c2">Sin escribir código.<svg class="hl-svg" viewBox="0 0 300 20" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M 0,10 Q 75,0 150,10 Q 225,20 300,10"></path></svg></span>
+            </h1>
+            <p class="text-muted text-[clamp(1rem,2vw,1.2rem)] max-w-[680px] mx-auto mt-6 leading-relaxed">
+                Datia reúne todo el ciclo del análisis de datos en una sola app web: desde la ingesta hasta el
+                <b class="text-ink">machine learning</b> y el <b class="text-ink">análisis de texto con IA</b>.
+            </p>
+            <div class="flex flex-wrap items-center justify-center gap-3 mt-9">
+                <a href="/app" class="btn-primary inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-base font-semibold">
+                    Empezar ahora <span class="mi text-[20px]">arrow_forward</span>
+                </a>
+                <a href="#features" class="btn-ghost inline-flex items-center gap-2 px-6 py-3.5 rounded-xl text-base font-medium">
+                    Conocer más <span class="mi text-[18px]">expand_more</span>
+                </a>
+            </div>
+            <!-- Stack badges -->
+            <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 mt-12 font-mono text-[12.5px] text-dim">
+                <span class="text-muted/70 uppercase tracking-wider text-[11px]">Construido con</span>
+                <span>FastAPI</span><span>·</span><span>Python</span><span>·</span><span>scikit-learn</span><span>·</span>
+                <span>Hugging&nbsp;Face</span><span>·</span><span>PostgreSQL</span><span>·</span><span>MongoDB</span><span>·</span><span>Plotly</span>
+            </div>
+        </section>
+
+        <!-- Números -->
+        <section class="max-w-[1000px] mx-auto px-6 mb-20">
+            <div class="gborder gborder-block"><div class="card grid grid-cols-3 gap-px overflow-hidden" style="background:rgba(125,217,196,0.12)">
+                                <div class="px-5 py-7 text-center" style="background:rgba(8,24,27,0.62)">
+                    <div class="font-mono font-bold text-[34px] tnum" style="color:#34d8c2">8</div>
+                    <div class="text-muted text-sm mt-1">secciones</div>
+                </div>
+                <div class="px-5 py-7 text-center" style="background:rgba(8,24,27,0.62)">
+                    <div class="font-mono font-bold text-[34px] tnum" style="color:#34d8c2">4</div>
+                    <div class="text-muted text-sm mt-1">modelos de ML</div>
+                </div>
+                <div class="px-5 py-7 text-center" style="background:rgba(8,24,27,0.62)">
+                    <div class="font-mono font-bold text-[34px] tnum" style="color:#34d8c2">5</div>
+                    <div class="text-muted text-sm mt-1">transformers (IA)</div>
+                </div>
+            </div></div>
+        </section>
+
+        <!-- Features -->
+        <section id="features" class="max-w-[1180px] mx-auto px-6 mb-20">
+            <div class="text-center mb-12">
+                <h2 class="reveal-words font-bold tracking-tight text-[clamp(1.6rem,4vw,2.4rem)]" data-wr><span class="wr wr-b">Todo</span> <span class="wr wr-b">lo</span> <span class="wr wr-b">que</span> <span class="wr wr-b">hace,</span> <span class="wr wr-b">en</span> <span class="wr wr-b">un</span> <span class="wr wr-b">solo</span> <span class="wr wr-b">lugar</span></h2>
+                <p class="reveal-words mt-3 max-w-[560px] mx-auto" data-wr><span class="wr">Seis</span> <span class="wr">herramientas</span> <span class="wr">conectadas:</span> <span class="wr">lo</span> <span class="wr">que</span> <span class="wr">cargas</span> <span class="wr">o</span> <span class="wr">limpias</span> <span class="wr">en</span> <span class="wr">una,</span> <span class="wr">queda</span> <span class="wr">disponible</span> <span class="wr">en</span> <span class="wr">todas.</span></p>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                                <div class="card p-5 zoom-card" style="border:0">
+                    <span class="tile mb-4"><span class="mi text-[22px]" style="color:#fff">cloud_upload</span></span>
+                    <h3 class="font-semibold text-[15px] mb-1.5">Carga de datos</h3>
+                    <p class="text-muted text-[13.5px] leading-snug">Sube CSV, TSV o JSON arrastrando, o conéctate a PostgreSQL y MongoDB.</p>
+                </div>
+                <div class="card p-5 zoom-card" style="border:0">
+                    <span class="tile mb-4"><span class="mi text-[22px]" style="color:#fff">auto_awesome</span></span>
+                    <h3 class="font-semibold text-[15px] mb-1.5">Reporte automático</h3>
+                    <p class="text-muted text-[13.5px] leading-snug">Un clic: calidad de datos, hallazgos, limpieza sugerida y el mejor modelo. Descargable en PDF y Word.</p>
+                </div>
+                <div class="card p-5 zoom-card" style="border:0">
+                    <span class="tile mb-4"><span class="mi text-[22px]" style="color:#fff">terminal</span></span>
+                    <h3 class="font-semibold text-[15px] mb-1.5">Editor SQL</h3>
+                    <p class="text-muted text-[13.5px] leading-snug">Escribe y ejecuta consultas sobre PostgreSQL y guarda los resultados en memoria.</p>
+                </div>
+                <div class="card p-5 zoom-card" style="border:0">
+                    <span class="tile mb-4"><span class="mi text-[22px]" style="color:#fff">monitoring</span></span>
+                    <h3 class="font-semibold text-[15px] mb-1.5">Análisis exploratorio</h3>
+                    <p class="text-muted text-[13.5px] leading-snug">Estadísticas, nulos, outliers (IQR), correlaciones y gráficos interactivos con Plotly.</p>
+                </div>
+                <div class="card p-5 zoom-card" style="border:0">
+                    <span class="tile mb-4"><span class="mi text-[22px]" style="color:#fff">mop</span></span>
+                    <h3 class="font-semibold text-[15px] mb-1.5">Limpieza configurable</h3>
+                    <p class="text-muted text-[13.5px] leading-snug">Quita duplicados, rellena nulos, detecta tipos y outliers — sin tocar el original.</p>
+                </div>
+                <div class="card p-5 zoom-card" style="border:0">
+                    <span class="tile mb-4"><span class="mi text-[22px]" style="color:#fff">travel_explore</span></span>
+                    <h3 class="font-semibold text-[15px] mb-1.5">Web Scraping</h3>
+                    <p class="text-muted text-[13.5px] leading-snug">Extrae tablas y texto de cualquier sitio web, listos para analizar.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Modelos ML + NLP -->
+        <section class="max-w-[1180px] mx-auto px-6 mb-20 grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <div class="card p-7 reveal holo">
+                <div class="flex items-center gap-3 mb-5">
+                    <span class="tile"><span class="mi text-[22px]" style="color:#fff">model_training</span></span>
+                    <h3 class="font-bold text-[19px]">4 modelos de Machine Learning</h3>
+                </div>
+                <div class="space-y-3">
+                                        <div class="flex items-start gap-3">
+                        <span class="mi text-[18px] mt-0.5" style="color:#34d8c2">check_circle</span>
+                        <div><b class="text-[14px]">Regresión Lineal</b><span class="text-muted text-[13.5px]"> — Predice un número continuo (precio, promedio…).</span></div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <span class="mi text-[18px] mt-0.5" style="color:#34d8c2">check_circle</span>
+                        <div><b class="text-[14px]">Regresión Logística</b><span class="text-muted text-[13.5px]"> — Clasifica en categorías (sí/no, A/B/C).</span></div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <span class="mi text-[18px] mt-0.5" style="color:#34d8c2">check_circle</span>
+                        <div><b class="text-[14px]">Árbol de Decisión</b><span class="text-muted text-[13.5px]"> — Reglas «si… entonces»; se adapta solo.</span></div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <span class="mi text-[18px] mt-0.5" style="color:#34d8c2">check_circle</span>
+                        <div><b class="text-[14px]">K-Means</b><span class="text-muted text-[13.5px]"> — Agrupa filas parecidas sin necesidad de objetivo.</span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="card p-7 reveal holo">
+                <div class="flex items-center gap-3 mb-5">
+                    <span class="tile"><span class="mi text-[22px]" style="color:#fff">smart_toy</span></span>
+                    <h3 class="font-bold text-[19px]">5 modelos Transformer (IA)</h3>
+                </div>
+                <div class="space-y-3">
+                                        <div class="flex items-center justify-between gap-3">
+                        <div class="flex items-start gap-3">
+                            <span class="mi text-[18px] mt-0.5" style="color:#34d8c2">bolt</span>
+                            <b class="text-[14px]">Análisis de Sentimiento</b>
+                        </div>
+                        <span class="font-mono text-[11.5px] shrink-0" style="color:#9fc4bd">DistilBERT · SST-2</span>
+                    </div>
+                    <div class="flex items-center justify-between gap-3">
+                        <div class="flex items-start gap-3">
+                            <span class="mi text-[18px] mt-0.5" style="color:#34d8c2">bolt</span>
+                            <b class="text-[14px]">Resumen Automático</b>
+                        </div>
+                        <span class="font-mono text-[11.5px] shrink-0" style="color:#9fc4bd">DistilBART · CNN</span>
+                    </div>
+                    <div class="flex items-center justify-between gap-3">
+                        <div class="flex items-start gap-3">
+                            <span class="mi text-[18px] mt-0.5" style="color:#34d8c2">bolt</span>
+                            <b class="text-[14px]">Clasificación Temática</b>
+                        </div>
+                        <span class="font-mono text-[11.5px] shrink-0" style="color:#9fc4bd">BART-large · MNLI</span>
+                    </div>
+                    <div class="flex items-center justify-between gap-3">
+                        <div class="flex items-start gap-3">
+                            <span class="mi text-[18px] mt-0.5" style="color:#34d8c2">bolt</span>
+                            <b class="text-[14px]">Entidades (NER)</b>
+                        </div>
+                        <span class="font-mono text-[11.5px] shrink-0" style="color:#9fc4bd">BERT-base · CoNLL-03</span>
+                    </div>
+                    <div class="flex items-center justify-between gap-3">
+                        <div class="flex items-start gap-3">
+                            <span class="mi text-[18px] mt-0.5" style="color:#34d8c2">bolt</span>
+                            <b class="text-[14px]">Pregunta-Respuesta</b>
+                        </div>
+                        <span class="font-mono text-[11.5px] shrink-0" style="color:#9fc4bd">DistilBERT · SQuAD</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Stack técnico -->
+        <section class="max-w-[1180px] mx-auto px-6 mb-20">
+            <div class="text-center mb-10">
+                <span class="hw-wrap" data-hw><svg class="hw-svg" viewBox="0 0 1200 300" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M 1040 60 C 1340 190, 1130 265, 600 280 C 110 268, 30 205, 80 150 C 135 80, 410 55, 610 58 C 830 62, 1015 105, 1010 125"></path></svg><h2 class="font-bold tracking-tight text-[clamp(1.6rem,4vw,2.4rem)]">Tecnologías usadas</h2></span>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                                <div class="card p-5 flex gap-4 items-start reveal stk" style="transition-delay:0s">
+                    <span class="stk-ico w-10 h-10 rounded-xl shrink-0 flex items-center justify-center" style="background:rgba(47,214,192,0.15)">
+                        <span class="mi text-[20px]" style="color:#34d8c2">dns</span>
+                    </span>
+                    <div><h3 class="font-semibold text-[14.5px]">Backend</h3><p class="text-muted text-[13px] leading-snug mt-1">FastAPI + Uvicorn (Python). Servidor asíncrono y rápido.</p></div>
+                </div>
+                <div class="card p-5 flex gap-4 items-start reveal stk" style="transition-delay:0.1s">
+                    <span class="stk-ico w-10 h-10 rounded-xl shrink-0 flex items-center justify-center" style="background:rgba(47,214,192,0.15)">
+                        <span class="mi text-[20px]" style="color:#34d8c2">table_chart</span>
+                    </span>
+                    <div><h3 class="font-semibold text-[14.5px]">Datos y ML</h3><p class="text-muted text-[13px] leading-snug mt-1">pandas · NumPy · scikit-learn para el análisis y los modelos.</p></div>
+                </div>
+                <div class="card p-5 flex gap-4 items-start reveal stk" style="transition-delay:0.2s">
+                    <span class="stk-ico w-10 h-10 rounded-xl shrink-0 flex items-center justify-center" style="background:rgba(47,214,192,0.15)">
+                        <span class="mi text-[20px]" style="color:#34d8c2">psychology</span>
+                    </span>
+                    <div><h3 class="font-semibold text-[14.5px]">NLP</h3><p class="text-muted text-[13px] leading-snug mt-1">Hugging Face Transformers + PyTorch (modo CPU).</p></div>
+                </div>
+                <div class="card p-5 flex gap-4 items-start reveal stk" style="transition-delay:0s">
+                    <span class="stk-ico w-10 h-10 rounded-xl shrink-0 flex items-center justify-center" style="background:rgba(47,214,192,0.15)">
+                        <span class="mi text-[20px]" style="color:#34d8c2">database</span>
+                    </span>
+                    <div><h3 class="font-semibold text-[14.5px]">Bases de datos</h3><p class="text-muted text-[13px] leading-snug mt-1">PostgreSQL (SQL) y MongoDB (NoSQL).</p></div>
+                </div>
+                <div class="card p-5 flex gap-4 items-start reveal stk" style="transition-delay:0.1s">
+                    <span class="stk-ico w-10 h-10 rounded-xl shrink-0 flex items-center justify-center" style="background:rgba(47,214,192,0.15)">
+                        <span class="mi text-[20px]" style="color:#34d8c2">insights</span>
+                    </span>
+                    <div><h3 class="font-semibold text-[14.5px]">Visualización</h3><p class="text-muted text-[13px] leading-snug mt-1">Plotly para los gráficos interactivos.</p></div>
+                </div>
+                <div class="card p-5 flex gap-4 items-start reveal stk" style="transition-delay:0.2s">
+                    <span class="stk-ico w-10 h-10 rounded-xl shrink-0 flex items-center justify-center" style="background:rgba(47,214,192,0.15)">
+                        <span class="mi text-[20px]" style="color:#34d8c2">web</span>
+                    </span>
+                    <div><h3 class="font-semibold text-[14.5px]">Frontend</h3><p class="text-muted text-[13px] leading-snug mt-1">Tailwind CSS + Jinja2, con un toque de JavaScript.</p></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA final -->
+        <section class="max-w-[1180px] mx-auto px-6 mb-16">
+            <div class="card glow p-10 sm:p-14 text-center" style="background:linear-gradient(135deg,rgba(10,34,38,0.72),rgba(8,26,30,0.6))">
+                <h2 class="font-extrabold tracking-tight text-[clamp(1.7rem,4vw,2.6rem)]">¿List@ para analizar tus datos?</h2>
+                <p class="text-muted mt-4 max-w-[520px] mx-auto">Sube un archivo y deja que Datia haga el resto: explorar, limpiar, modelar y reportar.</p>
+                <a href="/app" class="btn-primary inline-flex items-center gap-2 px-8 py-4 rounded-xl text-base font-semibold mt-8">
+                    Empezar ahora <span class="mi text-[20px]">arrow_forward</span>
+                </a>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="max-w-[1180px] mx-auto px-6 py-8 border-t border-[rgba(22,48,45,0.08)] flex flex-col sm:flex-row items-center justify-between gap-3 text-[13px] text-dim">
+            <div class="flex items-center gap-2">
+                <span class="w-6 h-6 rounded-md flex items-center justify-center" style="background:#0e766b"><span class="mi fill text-[14px]" style="color:#fff">graph_3</span></span>
+                <span class="font-semibold text-muted">Datia — Pipeline de Análisis de Datos</span>
+            </div>
+
+        </footer>
+    </div>
+
+    <script>
+    (function(){
+        var canvas=document.getElementById('aurora');
+        if(!canvas||!window.THREE) return;
+        var renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true,alpha:false,powerPreference:'high-performance'});
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+        var scene=new THREE.Scene();
+        var camera=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
+        var uniforms={ time:{value:0}, resolution:{value:new THREE.Vector2(1,1)} };
+        var material=new THREE.ShaderMaterial({
+            uniforms:uniforms,
+            vertexShader:'varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position,1.0); }',
+            fragmentShader:[
+            'uniform float time;',
+            'uniform vec2 resolution;',
+            'varying vec2 vUv;',
+            'vec3 mod289(vec3 x){return x-floor(x*(1.0/289.0))*289.0;}',
+            'vec2 mod289(vec2 x){return x-floor(x*(1.0/289.0))*289.0;}',
+            'vec3 permute(vec3 x){return mod289(((x*34.0)+1.0)*x);}',
+            'float snoise(vec2 v){',
+            '  const vec4 C=vec4(0.211324865405187,0.366025403784439,-0.577350269189626,0.024390243902439);',
+            '  vec2 i=floor(v+dot(v,C.yy));',
+            '  vec2 x0=v-i+dot(i,C.xx);',
+            '  vec2 i1; i1=(x0.x>x0.y)?vec2(1.0,0.0):vec2(0.0,1.0);',
+            '  vec4 x12=x0.xyxy+C.xxzz; x12.xy-=i1;',
+            '  i=mod289(i);',
+            '  vec3 p=permute(permute(i.y+vec3(0.0,i1.y,1.0))+i.x+vec3(0.0,i1.x,1.0));',
+            '  vec3 m=max(0.5-vec3(dot(x0,x0),dot(x12.xy,x12.xy),dot(x12.zw,x12.zw)),0.0);',
+            '  m=m*m; m=m*m;',
+            '  vec3 x=2.0*fract(p*C.www)-1.0;',
+            '  vec3 h=abs(x)-0.5;',
+            '  vec3 ox=floor(x+0.5);',
+            '  vec3 a0=x-ox;',
+            '  m*=1.79284291400159-0.85373472095314*(a0*a0+h*h);',
+            '  vec3 g;',
+            '  g.x=a0.x*x0.x+h.x*x0.y;',
+            '  g.yz=a0.yz*x12.xz+h.yz*x12.yw;',
+            '  return 130.0*dot(m,g);',
+            '}',
+            'void main(){',
+            '  vec2 uv=vUv;',
+            '  float flow1=snoise(vec2(uv.x*2.0+time*0.1, uv.y*0.5+time*0.05));',
+            '  float flow2=snoise(vec2(uv.x*1.5+time*0.08, uv.y*0.8+time*0.03));',
+            '  float flow3=snoise(vec2(uv.x*3.0+time*0.12, uv.y*0.3+time*0.07));',
+            '  float streaks=sin((uv.x+flow1*0.3)*8.0+time*0.2)*0.5+0.5;',
+            '  streaks*=sin((uv.y+flow2*0.2)*12.0+time*0.15)*0.5+0.5;',
+            '  float aurora=(flow1+flow2+flow3)*0.33+0.5; aurora=pow(aurora,2.0);',
+            '  vec3 darkTeal=vec3(0.0,0.08,0.12);',
+            '  vec3 teal=vec3(0.0,0.28,0.38);',
+            '  vec3 cyan=vec3(0.0,0.58,0.68);',
+            '  vec3 brightCyan=vec3(0.2,0.8,0.9);',
+            '  vec3 green=vec3(0.0,0.7,0.42);',
+            '  vec3 color=darkTeal;',
+            '  float tealFlow=smoothstep(0.3,0.7,aurora+streaks*0.3); color=mix(color,teal,tealFlow);',
+            '  float cyanFlow=smoothstep(0.6,0.9,aurora+flow1*0.4); color=mix(color,cyan,cyanFlow);',
+            '  float brightFlow=smoothstep(0.8,1.0,streaks+aurora*0.5); color=mix(color,brightCyan,brightFlow*0.7);',
+            '  float greenFlow=smoothstep(0.7,0.95,flow3+streaks*0.2); color=mix(color,green,greenFlow*0.5);',
+            '  float noise=snoise(uv*100.0)*0.02; color+=noise;',
+            '  gl_FragColor=vec4(color,1.0);',
+            '}'
+            ].join('\n')
+        });
+        var quad=new THREE.Mesh(new THREE.PlaneGeometry(2,2),material);
+        scene.add(quad);
+        function resize(){ var w=window.innerWidth,h=window.innerHeight; renderer.setSize(w,h,false); uniforms.resolution.value.set(w,h); }
+        window.addEventListener('resize',resize); resize();
+        var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+        function tick(){ uniforms.time.value+=0.0035; renderer.render(scene,camera); requestAnimationFrame(tick); }
+        if(reduce){ uniforms.time.value=8.0; renderer.render(scene,camera); } else { tick(); }
+    })();
+    </script>
+    <script>
+    (function(){
+        var els=document.querySelectorAll('.reveal');
+        if(!('IntersectionObserver' in window)){ els.forEach(function(e){e.classList.add('in');}); return; }
+        var io=new IntersectionObserver(function(entries){
+            entries.forEach(function(en){ if(en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); } });
+        },{ threshold:0.18, rootMargin:'0px 0px -8% 0px' });
+        els.forEach(function(e){ io.observe(e); });
+    })();
+    </script>
+    <script>
+    (function(){
+        var ps=document.querySelectorAll('[data-wr]');
+        if(!ps.length) return;
+        function update(){
+            var vh=window.innerHeight;
+            ps.forEach(function(p){
+                var words=p.querySelectorAll('.wr');
+                var r=p.getBoundingClientRect();
+                var prog=(vh*0.82 - r.top)/(vh*0.55);
+                prog=Math.max(0,Math.min(1,prog));
+                var lit=prog*words.length;
+                words.forEach(function(w,i){
+                    var o=lit-i; o=o<0?0:(o>1?1:o);
+                    w.style.opacity=(0.18+o*0.82).toFixed(3);
+                });
+            });
+        }
+        window.addEventListener('scroll',update,{passive:true});
+        window.addEventListener('resize',update);
+        update();
+    })();
+</script>
+    <script>
+    (function(){
+        var hw=document.querySelectorAll('[data-hw]');
+        if(!hw.length) return;
+        if(!('IntersectionObserver' in window)){ hw.forEach(function(e){e.classList.add('draw');}); return; }
+        var io=new IntersectionObserver(function(es){ es.forEach(function(en){ if(en.isIntersecting){ en.target.classList.add('draw'); io.unobserve(en.target); } }); },{ threshold:0.6 });
+        hw.forEach(function(e){ io.observe(e); });
+    })();
+</script>
+    <script>
+    (function(){
+        var cards=[].slice.call(document.querySelectorAll('.zoom-card'));
+        if(!cards.length) return;
+        cards.forEach(function(c,i){ c.style.transformOrigin=(i%2===0?'right center':'left center'); });
+        var ticking=false;
+        function apply(){
+            ticking=false;
+            var vh=window.innerHeight, vc=vh/2;
+            cards.forEach(function(c){
+                var r=c.getBoundingClientRect();
+                var cc=r.top+r.height/2;
+                var d=Math.abs(cc-vc)/(vh*0.55);
+                d=d>1?1:d;
+                var e=d*d*(3-2*d);
+                var scale=(1.13-e*0.3);
+                var op=(1-e*0.55).toFixed(3);
+                c.style.transform='scale('+scale.toFixed(3)+')';
+                c.style.opacity=op;
+                c.style.zIndex=Math.round(scale*100);
+            });
+        }
+        function onScroll(){ if(!ticking){ ticking=true; requestAnimationFrame(apply); } }
+        window.addEventListener('scroll',onScroll,{passive:true});
+        window.addEventListener('resize',onScroll);
+        apply();
+    })();
+</script>
+    <script>
+    (function(){
+        if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion:reduce)').matches) return;
+        if(window.matchMedia&&window.matchMedia('(hover:none)').matches) return;
+        document.querySelectorAll('.holo').forEach(function(card){
+            card.addEventListener('mousemove',function(e){
+                var r=card.getBoundingClientRect();
+                var x=e.clientX-r.left, y=e.clientY-r.top;
+                var rx=((y-r.height/2)/r.height)*-7;
+                var ry=((x-r.width/2)/r.width)*7;
+                card.style.transform='perspective(900px) rotateX('+rx.toFixed(2)+'deg) rotateY('+ry.toFixed(2)+'deg)';
+                card.style.setProperty('--mx',(x/r.width*100).toFixed(1)+'%');
+                card.style.setProperty('--my',(y/r.height*100).toFixed(1)+'%');
+            });
+            card.addEventListener('mouseleave',function(){
+                card.style.transform='perspective(900px) rotateX(0deg) rotateY(0deg)';
+            });
+        });
+    })();
+</script>
+    <script>
+    (function(){
+        var wrap=document.querySelector('[data-gooey]'); if(!wrap) return;
+        var t1=wrap.querySelector('[data-g1]'), t2=wrap.querySelector('[data-g2]');
+        var texts=["Carga","Explora","Limpia","Modela"];
+        var morphTime=1, cooldownTime=0.45;
+        var textIndex=texts.length-1, time=new Date(), morph=0, cooldown=cooldownTime;
+        t1.textContent=texts[textIndex%texts.length]; t2.textContent=texts[(textIndex+1)%texts.length];
+        function setMorph(f){ t2.style.filter='blur('+Math.min(8/f-8,100)+'px)'; t2.style.opacity=Math.pow(f,0.4)*100+'%'; f=1-f; t1.style.filter='blur('+Math.min(8/f-8,100)+'px)'; t1.style.opacity=Math.pow(f,0.4)*100+'%'; }
+        function doCooldown(){ morph=0; t2.style.filter=''; t2.style.opacity='100%'; t1.style.filter=''; t1.style.opacity='0%'; }
+        function doMorph(){ morph-=cooldown; cooldown=0; var f=morph/morphTime; if(f>1){cooldown=cooldownTime; f=1;} setMorph(f); }
+        function animate(){ requestAnimationFrame(animate); var nt=new Date(); var inc=cooldown>0; var dt=(nt.getTime()-time.getTime())/1000; time=nt; cooldown-=dt; if(cooldown<=0){ if(inc){ textIndex=(textIndex+1)%texts.length; t1.textContent=texts[textIndex%texts.length]; t2.textContent=texts[(textIndex+1)%texts.length]; } doMorph(); } else { doCooldown(); } }
+        animate();
+    })();
+</script>
+</body>
+</html>

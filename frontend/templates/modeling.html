@@ -6,8 +6,8 @@
 {% block content %}
 <div class="space-y-6">
     <div class="stagger-1 flex items-center gap-3">
-        <span class="w-11 h-11 rounded-lg bg-white flex items-center justify-center shrink-0 overflow-hidden shadow-sm">
-            <img src="/static/icons/modeling.png" alt="" class="w-8 h-8 object-contain"/>
+        <span class="w-[46px] h-[46px] rounded-[13px] flex items-center justify-center shrink-0" style="background:#0e766b;box-shadow:0 8px 20px rgba(14,118,107,0.28)">
+            <span class="material-symbols-outlined text-[24px]" style="color:#fff">model_training</span>
         </span>
         <div>
             <h2 class="text-h2 text-on-surface">Machine Learning</h2>
@@ -26,7 +26,7 @@
                 <span class="w-6 h-6 rounded-full bg-primary/15 text-primary text-xs font-mono font-semibold flex items-center justify-center shrink-0">1</span>
                 <div>
                     <p class="text-sm text-on-surface font-medium">Elige los datos</p>
-                    <p class="text-xs text-on-surface-dim leading-snug mt-0.5">Un CSV/TSV ya cargado en <span class="text-on-surface-variant">Flujos de trabajo</span>, o una consulta SQL guardada.</p>
+                    <p class="text-xs text-on-surface-dim leading-snug mt-0.5">Un CSV/TSV ya cargado en <span class="text-on-surface-variant">Resumen</span>, o una consulta SQL guardada.</p>
                 </div>
             </div>
             <div class="flex gap-3">
@@ -63,7 +63,7 @@
         </div>
         <p id="ml-no-sources" class="hidden mt-3 text-xs text-warning-text flex items-center gap-2">
             <span class="material-symbols-outlined text-[15px]">info</span>
-            No hay datos en memoria. Carga un archivo en <span class="font-medium">Flujos de trabajo</span> o guarda una consulta en el <span class="font-medium">Editor SQL</span> primero.
+            No hay datos en memoria. Carga un archivo en <span class="font-medium">Resumen</span> o guarda una consulta en el <span class="font-medium">Editor SQL</span> primero.
         </p>
     </section>
 
@@ -137,7 +137,7 @@
 
     <!-- Loading -->
     <div id="ml-loading" class="hidden flex flex-col items-center justify-center h-[200px]">
-        <span class="material-symbols-outlined text-primary text-[32px] animate-spin">progress_activity</span>
+        <div class="luma-spin"><span></span><span></span></div>
         <p id="ml-loading-text" class="text-on-surface-variant mt-4 text-xs font-mono uppercase tracking-wider">Entrenando…</p>
     </div>
 

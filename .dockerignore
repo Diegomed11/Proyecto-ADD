@@ -12,9 +12,30 @@ skills-lock.json
 *.pyc
 *.pyo
 
+# Entornos virtuales y artefactos (no deben entrar a la imagen)
+venv/
+.venv/
+env/
+*.egg-info/
+.pytest_cache/
+
+# Docker (no necesita copiarse a sí mismo dentro de la imagen)
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Documentos de prueba generados localmente
+informe_*.docx
+informe_*.pdf
+
 # Pruebas y bases de datos locales de ejemplo
 tests/
 *.db
 
 # Recursos originales (las copias servidas viven en frontend/static/icons)
 recursos/
+
+# Bundle de diseño de Claude Design (no es parte del runtime)
+cartel-cert/
+apcd-handoff/
+*.zip

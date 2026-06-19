@@ -7,8 +7,8 @@
 <div class="space-y-6">
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 stagger-1">
         <div class="flex items-center gap-3">
-            <span class="w-11 h-11 rounded-lg bg-white flex items-center justify-center shrink-0 overflow-hidden shadow-sm">
-                <img src="/static/icons/statistics.png" alt="" class="w-8 h-8 object-contain"/>
+            <span class="w-[46px] h-[46px] rounded-[13px] flex items-center justify-center shrink-0" style="background:#0e766b;box-shadow:0 8px 20px rgba(14,118,107,0.28)">
+                <span class="material-symbols-outlined text-[24px]" style="color:#fff">monitoring</span>
             </span>
             <div>
                 <h2 class="text-h2 text-on-surface">Análisis exploratorio (EDA)</h2>
@@ -28,7 +28,7 @@
 
     <!-- Loading State -->
     <div id="eda-loading" class="hidden flex flex-col items-center justify-center h-[300px]">
-        <span class="material-symbols-outlined text-primary text-[32px] animate-spin">progress_activity</span>
+        <div class="luma-spin"><span></span><span></span></div>
         <p class="text-on-surface-variant mt-4 text-xs font-mono uppercase tracking-wider">Calculando estadísticas…</p>
     </div>
 
@@ -86,7 +86,7 @@
                 <span class="material-symbols-outlined text-on-surface-dim text-[20px]">grid_on</span>
                 <h3 class="text-sm font-semibold text-on-surface">Correlaciones</h3>
             </div>
-            <p class="text-[11px] text-on-surface-dim mb-4 font-mono uppercase tracking-wider">pearson · azul = positiva · rojo = negativa</p>
+            <p class="text-[11px] text-on-surface-dim mb-4 font-mono uppercase tracking-wider">pearson · teal = positiva · coral = negativa</p>
             <div class="overflow-x-auto">
                 <table id="eda-corr-table" class="border-collapse text-xs font-mono"></table>
             </div>
@@ -126,11 +126,43 @@
                 <!-- JS Injected -->
             </div>
         </section>
+
+        <!-- Visualizaciones interactivas (Plotly) -->
+        <section class="md:col-span-12 panel rounded-lg overflow-hidden" style="animation: fadeUp 0.4s ease-out 0.18s both">
+            <div class="px-5 py-3.5 border-b border-border-glass flex items-center gap-2.5">
+                <span class="material-symbols-outlined text-on-surface-dim text-[18px]">insights</span>
+                <h3 class="text-sm font-semibold text-on-surface">Visualizaciones interactivas</h3>
+            </div>
+            <div class="p-5 space-y-4">
+                <!-- Controles -->
+                <div class="flex flex-wrap items-end gap-3">
+                    <div id="viz-type-buttons" class="flex flex-wrap gap-1.5">
+                        <!-- botones JS -->
+                    </div>
+                    <div id="viz-x-wrap" class="hidden">
+                        <label class="block text-[11px] font-mono text-on-surface-variant mb-1">eje X / columna</label>
+                        <select id="viz-x" class="rounded-md px-3 py-1.5 text-sm custom-select font-mono" onchange="renderViz()"></select>
+                    </div>
+                    <div id="viz-y-wrap" class="hidden">
+                        <label class="block text-[11px] font-mono text-on-surface-variant mb-1">eje Y / grupo</label>
+                        <select id="viz-y" class="rounded-md px-3 py-1.5 text-sm custom-select font-mono" onchange="renderViz()"></select>
+                    </div>
+                </div>
+                <!-- Lienzo -->
+                <div class="relative bg-ink/40 border border-border-glass rounded-md">
+                    <div id="viz-loading" class="hidden absolute inset-0 flex items-center justify-center bg-ink/60 z-10">
+                        <div class="luma-spin sm"><span></span><span></span></div>
+                    </div>
+                    <div id="viz-chart" class="w-full min-h-[380px]"></div>
+                </div>
+            </div>
+        </section>
     </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
+<script src="/static/js/plotly.min.js" charset="utf-8"></script>
 <script>
     async function loadSourcesForSelect() {
         try {
@@ -192,6 +224,9 @@
 
         // 0b. Mapa de correlaciones
         renderCorrelation(data.correlation || { columnas: [], matriz: [] });
+
+        // 0c. Visualizaciones interactivas
+        initViz(document.getElementById('source-selector').value);
 
         // 1. Resumen Descriptivo
         const descBody = document.getElementById('eda-descriptive-body');
@@ -318,13 +353,13 @@
         if (cols.length < 2) { section.classList.add('hidden'); return; }
         section.classList.remove('hidden');
 
-        // Color de celda: azul (positiva) a rojo (negativa), intensidad = |valor|.
+        // Color de celda: teal (positiva) a coral (negativa), intensidad = |valor|.
         const cellColor = (v) => {
             const a = Math.min(Math.abs(v), 1);
-            if (v >= 0) return `background-color: rgba(245, 158, 11, ${a * 0.85})`;   // ámbar/primario
-            return `background-color: rgba(248, 113, 113, ${a * 0.85})`;             // rojo
+            if (v >= 0) return `background-color: rgba(18, 138, 126, ${a * 0.82})`;   // teal
+            return `background-color: rgba(214, 108, 67, ${a * 0.82})`;              // coral
         };
-        const textColor = (v) => Math.abs(v) > 0.5 ? 'color:#18181B' : '';
+        const textColor = (v) => Math.abs(v) > 0.55 ? 'color:#ffffff' : 'color:#3f5a55';
 
         let html = '<thead><tr><th class="p-2"></th>' +
             cols.map(c => `<th class="p-2 text-on-surface-dim font-medium border-b border-border-glass max-w-[90px] truncate" title="${c}">${c}</th>`).join('') +
@@ -336,6 +371,108 @@
         });
         html += '</tbody>';
         table.innerHTML = html;
+    }
+
+    // ── Visualizaciones interactivas (Plotly) ─────────────────────────
+    const VIZ_TIPOS = [
+        { id: 'hist',    nombre: 'Histograma',   icon: 'bar_chart',    ejes: ['x'] },
+        { id: 'box',     nombre: 'Caja',         icon: 'candlestick_chart', ejes: ['x', 'y'] },
+        { id: 'scatter', nombre: 'Dispersión',   icon: 'scatter_plot', ejes: ['x', 'y'] },
+        { id: 'bar',     nombre: 'Barras',       icon: 'leaderboard',  ejes: ['x'] },
+        { id: 'heatmap', nombre: 'Correlación',  icon: 'grid_on',      ejes: [] },
+    ];
+    const vizState = { source: '', kind: 'hist', numericas: [], categoricas: [] };
+
+    async function initViz(source) {
+        if (!source) return;
+        vizState.source = source;
+        try {
+            const res = await fetch(`/api/viz/columns/${encodeURIComponent(source)}`);
+            const data = await res.json();
+            vizState.numericas = data.numericas || [];
+            vizState.categoricas = data.categoricas || [];
+        } catch (e) { vizState.numericas = []; vizState.categoricas = []; }
+
+        // Botones de tipo
+        const cont = document.getElementById('viz-type-buttons');
+        cont.innerHTML = VIZ_TIPOS.map(t => `
+            <button type="button" data-kind="${t.id}" onclick="selectVizKind('${t.id}')"
+                class="viz-type-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-xs font-mono transition-colors
+                ${t.id === vizState.kind ? 'border-primary bg-primary/10 text-on-surface' : 'border-border-glass bg-surface-2 text-on-surface-variant hover:border-line-strong'}">
+                <span class="material-symbols-outlined text-[15px]">${t.icon}</span>${t.nombre}
+            </button>`).join('');
+
+        selectVizKind(vizState.kind);
+    }
+
+    function selectVizKind(kind) {
+        vizState.kind = kind;
+        const meta = VIZ_TIPOS.find(t => t.id === kind);
+        document.querySelectorAll('.viz-type-btn').forEach(b => {
+            const active = b.dataset.kind === kind;
+            b.classList.toggle('border-primary', active);
+            b.classList.toggle('bg-primary/10', active);
+            b.classList.toggle('text-on-surface', active);
+            b.classList.toggle('border-border-glass', !active);
+            b.classList.toggle('bg-surface-2', !active);
+        });
+
+        // Poblar selectores según el tipo de gráfico
+        const usaX = meta.ejes.includes('x');
+        const usaY = meta.ejes.includes('y');
+        const xWrap = document.getElementById('viz-x-wrap');
+        const yWrap = document.getElementById('viz-y-wrap');
+        const xSel = document.getElementById('viz-x');
+        const ySel = document.getElementById('viz-y');
+
+        xWrap.classList.toggle('hidden', !usaX);
+        yWrap.classList.toggle('hidden', !usaY);
+
+        if (usaX) {
+            // hist/box/scatter usan X numérico; bar usa X categórico
+            const opts = (kind === 'bar') ? vizState.categoricas : vizState.numericas;
+            xSel.innerHTML = opts.map(c => `<option value="${c}">${c}</option>`).join('') ||
+                '<option value="">(sin columnas)</option>';
+        }
+        if (usaY) {
+            // scatter: Y numérico; box: Y agrupador categórico (opcional)
+            const opts = (kind === 'scatter') ? vizState.numericas : vizState.categoricas;
+            const extra = (kind === 'box') ? '<option value="">— sin agrupar —</option>' : '';
+            ySel.innerHTML = extra + opts.map(c => `<option value="${c}">${c}</option>`).join('');
+            // Para scatter, por defecto Y = segunda numérica distinta
+            if (kind === 'scatter' && vizState.numericas.length > 1) ySel.selectedIndex = 1;
+        }
+        renderViz();
+    }
+
+    async function renderViz() {
+        if (!vizState.source) return;
+        const meta = VIZ_TIPOS.find(t => t.id === vizState.kind);
+        const body = { kind: vizState.kind };
+        if (meta.ejes.includes('x')) body.x = document.getElementById('viz-x').value;
+        if (meta.ejes.includes('y')) body.y = document.getElementById('viz-y').value;
+
+        const chart = document.getElementById('viz-chart');
+        const loading = document.getElementById('viz-loading');
+        loading.classList.remove('hidden');
+        try {
+            const res = await fetch(`/api/viz/${encodeURIComponent(vizState.source)}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+            });
+            const data = await res.json();
+            loading.classList.add('hidden');
+            if (!res.ok) {
+                chart.innerHTML = `<div class="flex items-center justify-center h-[380px] text-sm text-on-surface-dim">${data.detail || 'No se pudo generar el gráfico'}</div>`;
+                return;
+            }
+            const fig = data.figure;
+            Plotly.react(chart, fig.data, fig.layout, { responsive: true, displayModeBar: false });
+        } catch (e) {
+            loading.classList.add('hidden');
+            chart.innerHTML = '<div class="flex items-center justify-center h-[380px] text-sm text-error-text">Error al cargar el gráfico</div>';
+        }
     }
 
     document.addEventListener('DOMContentLoaded', () => {

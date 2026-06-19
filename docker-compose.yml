@@ -1,0 +1,55 @@
+# APCD — Pipeline de Análisis de Datos
+# Arranca todo con un solo comando:
+#
+#   docker compose up --build        (primera vez: builda la imagen)
+#   docker compose up                (siguientes veces: arranque en segundos)
+#
+# Luego abre  http://localhost:8000
+#
+# Con bases de datos (PostgreSQL + MongoDB) para las pestañas de BD / Editor SQL:
+#   docker compose --profile databases up
+
+services:
+  apcd:
+    build: .
+    image: apcd-web
+    container_name: apcd
+    ports:
+      - "8000:7860"          # host 8000 -> contenedor 7860 (abre localhost:8000)
+    environment:
+      - PORT=7860
+    volumes:
+      # Cachea los modelos de NLP entre reinicios: se descargan UNA vez y se
+      # reutilizan -> arranques y análisis mucho más rápidos.
+      - hf-cache:/home/user/.cache/huggingface
+    restart: unless-stopped
+
+  # --- Bases de datos opcionales (solo con: --profile databases) ---
+  postgres:
+    image: postgres:16-alpine
+    container_name: apcd-postgres
+    profiles: ["databases"]
+    environment:
+      POSTGRES_USER: apcd
+      POSTGRES_PASSWORD: apcd
+      POSTGRES_DB: apcd
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  mongo:
+    image: mongo:7
+    container_name: apcd-mongo
+    profiles: ["databases"]
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodata:/data/db
+    restart: unless-stopped
+
+volumes:
+  hf-cache:
+  pgdata:
+  mongodata:

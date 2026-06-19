@@ -471,22 +471,64 @@ class SimuladorNoSQL:
         return resultado
 
 
+def _validar_url_segura(url: str):
+    """Bloquea SSRF: solo http(s) hacia IPs públicas.
+
+    Rechaza localhost, redes privadas (10/8, 192.168/16, 172.16/12), link-local
+    (169.254/16 → incluye el endpoint de metadatos de la nube 169.254.169.254) y
+    otras direcciones internas. Esencial en EC2 para no exponer credenciales IAM.
+    """
+    import ipaddress
+    import socket
+    from urllib.parse import urlparse
+
+    parsed = urlparse((url or "").strip())
+    if parsed.scheme not in ("http", "https"):
+        raise ValueError("Solo se permiten URLs http(s).")
+    host = parsed.hostname
+    if not host:
+        raise ValueError("URL inválida.")
+
+    try:
+        infos = socket.getaddrinfo(host, None)
+    except socket.gaierror:
+        raise ValueError(f"No se pudo resolver el host: {host}")
+
+    for info in infos:
+        ip = ipaddress.ip_address(info[4][0])
+        if (ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved
+                or ip.is_multicast or ip.is_unspecified):
+            raise ValueError("Acceso a direcciones internas no permitido (seguridad).")
+    return True
+
+
 class WebScraper:
 
     def __init__(self, url: str = ""):
+        if url:
+            _validar_url_segura(url)
         self._url = url
         self._html_crudo = ""
         self._tablas = []
 
     def establecer_url(self, url: str):
+        _validar_url_segura(url)
         self._url = url
 
     def obtener_html(self) -> str:
         if not self._url:
             raise ValueError("No se ha establecido una URL.")
-        respuesta = requests.get(self._url, timeout=15, headers={
+        # allow_redirects=False: un sitio público no puede redirigir a una IP
+        # interna para esquivar la validación (defensa en profundidad anti-SSRF).
+        respuesta = requests.get(self._url, timeout=15, allow_redirects=False, headers={
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
         })
+        if respuesta.is_redirect or respuesta.is_permanent_redirect:
+            destino = respuesta.headers.get("location", "")
+            raise ConnectionError(
+                f"La página redirige a otra URL. Por seguridad no se sigue automáticamente. "
+                f"Usa la URL final directamente{': ' + destino if destino else '.'}"
+            )
         if not respuesta.ok:
             raise ConnectionError(f"Error HTTP {respuesta.status_code}: {self._url}")
         self._html_crudo = respuesta.text

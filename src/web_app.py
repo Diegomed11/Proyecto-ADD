@@ -5,12 +5,18 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from src.api_routes import router as api_router
+from src.rate_limit import RateLimiter, config_desde_entorno
 
 # Obtener la ruta base del proyecto
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
 
 app = FastAPI(title="PDA - Pipeline de Análisis de Datos")
+
+# Rate limiting por IP (protege la app de abuso/DoS). Configurable por entorno.
+_rl_activado, _rl_kwargs = config_desde_entorno()
+if _rl_activado:
+    app.add_middleware(RateLimiter, **_rl_kwargs)
 
 # Montar los estáticos (si hay CSS o JS adicional)
 app.mount("/static", StaticFiles(directory=os.path.join(FRONTEND_DIR, "static")), name="static")
@@ -36,14 +42,14 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
         return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
     if exc.status_code == 404:
         return templates.TemplateResponse(
-            "error.html",
-            {"request": request, "codigo": 404, "titulo": "Página no encontrada",
+            request, "error.html",
+            {"codigo": 404, "titulo": "Página no encontrada",
              "mensaje": "La ruta que buscas no existe o se movió."},
             status_code=404,
         )
     return templates.TemplateResponse(
-        "error.html",
-        {"request": request, "codigo": exc.status_code, "titulo": "Error",
+        request, "error.html",
+        {"codigo": exc.status_code, "titulo": "Error",
          "mensaje": str(exc.detail)},
         status_code=exc.status_code,
     )
@@ -54,8 +60,8 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
     if request.url.path.startswith("/api"):
         return JSONResponse(status_code=500, content={"detail": "Error interno del servidor."})
     return templates.TemplateResponse(
-        "error.html",
-        {"request": request, "codigo": 500, "titulo": "Error interno",
+        request, "error.html",
+        {"codigo": 500, "titulo": "Error interno",
          "mensaje": "Algo salió mal en el servidor. Inténtalo de nuevo."},
         status_code=500,
     )
@@ -64,32 +70,41 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 # --- Rutas del Frontend (Vistas) ---
 
 @app.get("/")
+async def landing(request: Request):
+    # Página de presentación (hero). El botón "Empezar ahora" lleva a /app.
+    return templates.TemplateResponse(request, "landing.html", {})
+
+@app.get("/app")
 async def overview(request: Request):
-    return templates.TemplateResponse("overview.html", {"request": request, "active_tab": "overview"})
+    return templates.TemplateResponse(request, "overview.html", {"active_tab": "overview"})
+
+@app.get("/report")
+async def report_page(request: Request):
+    return templates.TemplateResponse(request, "report.html", {"active_tab": "report"})
 
 @app.get("/databases")
 async def databases(request: Request):
-    return templates.TemplateResponse("databases.html", {"request": request, "active_tab": "databases"})
-
-@app.get("/pipelines")
-async def pipelines(request: Request):
-    return templates.TemplateResponse("pipelines.html", {"request": request, "active_tab": "pipelines"})
+    return templates.TemplateResponse(request, "databases.html", {"active_tab": "databases"})
 
 @app.get("/sql-editor")
 async def sql_editor(request: Request):
-    return templates.TemplateResponse("sql_editor.html", {"request": request, "active_tab": "sql-editor"})
+    return templates.TemplateResponse(request, "sql_editor.html", {"active_tab": "sql-editor"})
+
+@app.get("/etl")
+async def etl(request: Request):
+    return templates.TemplateResponse(request, "etl.html", {"active_tab": "etl"})
 
 @app.get("/statistics")
 async def statistics(request: Request):
-    return templates.TemplateResponse("statistics.html", {"request": request, "active_tab": "statistics"})
+    return templates.TemplateResponse(request, "statistics.html", {"active_tab": "statistics"})
 
 @app.get("/web-scraping")
 async def web_scraping(request: Request):
-    return templates.TemplateResponse("web_scraping.html", {"request": request, "active_tab": "web-scraping"})
+    return templates.TemplateResponse(request, "web_scraping.html", {"active_tab": "web-scraping"})
 
 @app.get("/modeling")
 async def modeling(request: Request):
-    return templates.TemplateResponse("modeling.html", {"request": request, "active_tab": "modeling"})
+    return templates.TemplateResponse(request, "modeling.html", {"active_tab": "modeling"})
 
 if __name__ == "__main__":
     import uvicorn

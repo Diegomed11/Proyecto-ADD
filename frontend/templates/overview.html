@@ -7,14 +7,30 @@
 <div class="space-y-6">
 
     <div class="stagger-1 flex items-center gap-3">
-        <span class="w-11 h-11 rounded-lg bg-white flex items-center justify-center shrink-0 overflow-hidden shadow-sm">
-            <img src="/static/icons/overview.png" alt="" class="w-8 h-8 object-contain"/>
+        <span class="w-[46px] h-[46px] rounded-[13px] flex items-center justify-center shrink-0" style="background:#0e766b;box-shadow:0 8px 20px rgba(14,118,107,0.28)">
+            <span class="material-symbols-outlined text-[24px]" style="color:#fff">dashboard</span>
         </span>
         <div>
             <h2 class="text-h2 text-on-surface">Resumen</h2>
             <p class="text-on-surface-variant text-sm mt-1">Estado del entorno y fuentes residentes en memoria.</p>
         </div>
     </div>
+
+    <!-- Carga rápida de fuentes -->
+    <section id="ov-drop-zone" class="panel rounded-lg p-5 flex flex-col sm:flex-row items-center gap-4 border-dashed border-line-strong hover:border-primary transition-colors cursor-pointer group stagger-1">
+        <div class="w-11 h-11 rounded-lg border border-border-glass bg-surface-2 flex items-center justify-center shrink-0 group-hover:border-primary/40 transition-colors">
+            <span class="material-symbols-outlined text-[22px] text-on-surface-dim group-hover:text-primary transition-colors">cloud_upload</span>
+        </div>
+        <div class="flex-1 text-center sm:text-left">
+            <h3 class="text-sm font-semibold text-on-surface">Carga tus fuentes aquí</h3>
+            <p class="text-xs text-on-surface-variant mt-0.5">Arrastra y suelta, o selecciona un archivo. Formatos: <span class="font-mono text-on-surface-dim">.csv .tsv .json</span></p>
+        </div>
+        <input type="file" id="ov-file-upload" class="hidden" accept=".csv,.tsv,.json"/>
+        <label for="ov-file-upload" class="cursor-pointer btn-primary px-5 py-2.5 rounded-md relative z-10 flex items-center gap-2 text-sm whitespace-nowrap">
+            <span class="material-symbols-outlined text-[18px]">upload</span>
+            Seleccionar archivo
+        </label>
+    </section>
 
     <!-- Métricas -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -116,7 +132,7 @@
                             </div>
                             <div>
                                 <p class="text-sm font-semibold text-on-surface">Sin fuentes cargadas</p>
-                                <p class="text-sm text-on-surface-variant mt-1">Sube datos desde la pestaña de Flujos de trabajo.</p>
+                                <p class="text-sm text-on-surface-variant mt-1">Arrastra un archivo a la zona de arriba para empezar.</p>
                             </div>
                         </div>
                     </td>
@@ -184,6 +200,51 @@
         } catch(e) {
             if(window.showToast) showToast("Error de red", "error");
         }
+    }
+
+    // ── Carga de fuentes desde el Resumen ─────────────────────────────
+    const ovDrop = document.getElementById('ov-drop-zone');
+    const ovInput = document.getElementById('ov-file-upload');
+
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(ev =>
+        ovDrop.addEventListener(ev, (e) => { e.preventDefault(); e.stopPropagation(); }, false));
+    ['dragenter', 'dragover'].forEach(ev =>
+        ovDrop.addEventListener(ev, () => { ovDrop.classList.add('border-primary', 'bg-white/[0.04]'); }, false));
+    ['dragleave', 'drop'].forEach(ev =>
+        ovDrop.addEventListener(ev, () => { ovDrop.classList.remove('border-primary', 'bg-white/[0.04]'); }, false));
+
+    ovDrop.addEventListener('drop', (e) => {
+        if (e.dataTransfer.files.length > 0) ovUploadFile(e.dataTransfer.files[0]);
+    }, false);
+    ovInput.addEventListener('change', function () {
+        if (this.files.length > 0) ovUploadFile(this.files[0]);
+    });
+
+    async function ovUploadFile(file) {
+        const validExt = ['.csv', '.tsv', '.json'];
+        const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+        if (!validExt.includes(ext)) {
+            if (window.showToast) showToast('Formato no válido. Usa CSV, TSV o JSON', 'warning');
+            return;
+        }
+        if (window.showToast) showToast(`Subiendo ${file.name}…`, 'info');
+
+        const formData = new FormData();
+        formData.append('file', file);
+        try {
+            const res = await fetch('/api/upload', { method: 'POST', body: formData });
+            const data = await res.json();
+            if (res.ok) {
+                if (window.showToast) showToast(`Archivo procesado (${data.rows} filas)`, 'success');
+                if (window.updateSourcesCount) updateSourcesCount();
+                loadSourcesTable();
+            } else {
+                if (window.showToast) showToast(data.detail || 'Error al subir el archivo', 'error');
+            }
+        } catch (e) {
+            if (window.showToast) showToast('Error de conexión al subir el archivo', 'error');
+        }
+        ovInput.value = '';
     }
 
     document.addEventListener('DOMContentLoaded', () => {

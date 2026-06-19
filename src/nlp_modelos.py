@@ -89,8 +89,33 @@ _NER_ETIQUETAS = {
     "MISC": "Misceláneo",
 }
 
-# Caché de modelos / pipelines ya cargados (lazy loading).
-_PIPELINES = {}
+# Caché de modelos con eviction LRU. Mantener TODOS los modelos cargados a la vez
+# puede superar varios GB (BART-large ~3 GB) y tumbar una instancia de 8 GB. Por eso
+# guardamos como máximo NLP_MAX_MODELOS en memoria; al cargar uno nuevo se libera el
+# menos usado. Configurable por entorno (default 1 → máximo seguro para 8 GB).
+import gc
+from collections import OrderedDict
+
+_MAX_MODELOS = max(1, int(os.environ.get("NLP_MAX_MODELOS", "1")))
+_PIPELINES = OrderedDict()
+
+
+def _obtener_cache(clave):
+    """Devuelve el modelo cacheado (y lo marca como recién usado) o None."""
+    if clave in _PIPELINES:
+        _PIPELINES.move_to_end(clave)
+        return _PIPELINES[clave]
+    return None
+
+
+def _recordar_cache(clave, valor):
+    """Guarda un modelo y libera los más antiguos si se supera el límite."""
+    _PIPELINES[clave] = valor
+    _PIPELINES.move_to_end(clave)
+    while len(_PIPELINES) > _MAX_MODELOS:
+        _PIPELINES.popitem(last=False)  # descarta el menos usado
+        gc.collect()  # libera la RAM del modelo evacuado
+    return valor
 
 
 def _get_pipeline(tarea: str):
@@ -99,14 +124,15 @@ def _get_pipeline(tarea: str):
     Sólo se usa para sentiment / zeroshot / ner, cuyos nombres de tarea siguen
     existiendo en transformers 4.x y 5.x.
     """
-    if tarea not in _PIPELINES:
-        from transformers import pipeline
-        cfg = MODELOS_NLP[tarea]
-        kwargs = {}
-        if tarea == "ner":
-            kwargs["aggregation_strategy"] = "simple"
-        _PIPELINES[tarea] = pipeline(cfg["tarea_hf"], model=cfg["modelo"], **kwargs)
-    return _PIPELINES[tarea]
+    cacheado = _obtener_cache(tarea)
+    if cacheado is not None:
+        return cacheado
+    from transformers import pipeline
+    cfg = MODELOS_NLP[tarea]
+    kwargs = {}
+    if tarea == "ner":
+        kwargs["aggregation_strategy"] = "simple"
+    return _recordar_cache(tarea, pipeline(cfg["tarea_hf"], model=cfg["modelo"], **kwargs))
 
 
 def _get_modelo_directo(tarea: str, auto_clase):
@@ -116,14 +142,15 @@ def _get_modelo_directo(tarea: str, auto_clase):
     en transformers 5.x. Cargar el modelo a mano funciona en cualquier versión.
     """
     clave = f"__directo__{tarea}"
-    if clave not in _PIPELINES:
-        from transformers import AutoTokenizer
-        cfg = MODELOS_NLP[tarea]
-        tok = AutoTokenizer.from_pretrained(cfg["modelo"])
-        mdl = auto_clase.from_pretrained(cfg["modelo"])
-        mdl.eval()
-        _PIPELINES[clave] = (tok, mdl)
-    return _PIPELINES[clave]
+    cacheado = _obtener_cache(clave)
+    if cacheado is not None:
+        return cacheado
+    from transformers import AutoTokenizer
+    cfg = MODELOS_NLP[tarea]
+    tok = AutoTokenizer.from_pretrained(cfg["modelo"])
+    mdl = auto_clase.from_pretrained(cfg["modelo"])
+    mdl.eval()
+    return _recordar_cache(clave, (tok, mdl))
 
 
 def analizar(tarea: str, texto: str, opciones: dict = None) -> dict:
@@ -258,7 +285,9 @@ def _preguntar(pregunta: str, texto: str) -> dict:
         fin = inicio + 1
 
     ids = inputs["input_ids"][0][inicio:fin]
-    respuesta = tok.decode(ids, skip_special_tokens=True).strip()
+    respuesta = tok.decode(ids, skip_special_tokens=True)
+    # Limpiar artefactos de subpalabras (##) cuando el span empieza a mitad de palabra.
+    respuesta = respuesta.replace(" ##", "").replace("##", "").strip()
 
     # Score = producto de las probabilidades softmax de inicio y fin.
     p_inicio = torch.softmax(inicio_logits, dim=-1)[inicio]

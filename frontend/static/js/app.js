@@ -25,6 +25,10 @@ async function updateSourcesCount() {
         if (badge) {
             badge.textContent = `fuentes: ${count}`;
         }
+        const sb = document.getElementById('sidebar-sources');
+        if (sb) {
+            sb.textContent = `${count} fuente${count === 1 ? '' : 's'}`;
+        }
     } catch (error) {
         console.error("Error al obtener el conteo de fuentes:", error);
     }
@@ -35,35 +39,35 @@ async function updateSourcesCount() {
 const TOAST_CONFIG = {
     success: {
         icon: 'check_circle',
-        bg: 'bg-[#0E2A20]',
-        border: 'border-emerald-500/30',
-        text: 'text-emerald-100',
-        iconColor: 'text-emerald-400',
-        progress: 'bg-emerald-400',
+        bg: 'bg-[#e3f3ec]',
+        border: 'border-[#127a55]/30',
+        text: 'text-[#0f4f39]',
+        iconColor: 'text-[#127a55]',
+        progress: 'bg-[#127a55]',
     },
     error: {
         icon: 'error',
-        bg: 'bg-[#2A1416]',
-        border: 'border-red-500/30',
-        text: 'text-red-100',
-        iconColor: 'text-red-400',
-        progress: 'bg-red-400',
+        bg: 'bg-[#fbeae2]',
+        border: 'border-[#c2602f]/30',
+        text: 'text-[#8a3d18]',
+        iconColor: 'text-[#c2602f]',
+        progress: 'bg-[#c2602f]',
     },
     warning: {
         icon: 'warning',
-        bg: 'bg-[#2A2110]',
-        border: 'border-amber-500/30',
-        text: 'text-amber-100',
-        iconColor: 'text-amber-400',
-        progress: 'bg-amber-400',
+        bg: 'bg-[#fbf0dc]',
+        border: 'border-[#b06a16]/30',
+        text: 'text-[#7a4a10]',
+        iconColor: 'text-[#b06a16]',
+        progress: 'bg-[#b06a16]',
     },
     info: {
         icon: 'info',
-        bg: 'bg-[#11212E]',
-        border: 'border-sky-500/30',
-        text: 'text-sky-100',
-        iconColor: 'text-sky-400',
-        progress: 'bg-sky-400',
+        bg: 'bg-[#e2f1f5]',
+        border: 'border-[#0e7490]/30',
+        text: 'text-[#0b5566]',
+        iconColor: 'text-[#0e7490]',
+        progress: 'bg-[#0e7490]',
     },
 };
 
@@ -74,7 +78,7 @@ function showToast(message, type = 'info', duration = 4000) {
     const toast = document.createElement('div');
     toast.setAttribute('role', 'alert');
     toast.setAttribute('aria-live', 'polite');
-    toast.className = `pointer-events-auto flex items-start gap-3 px-4 py-3 rounded-lg border shadow-lg shadow-black/40
+    toast.className = `pointer-events-auto flex items-start gap-3 px-4 py-3 rounded-xl border shadow-lg shadow-[#1a4842]/15
         ${config.bg} ${config.border} ${config.text}
         animate-toast-in relative overflow-hidden max-w-sm`;
 

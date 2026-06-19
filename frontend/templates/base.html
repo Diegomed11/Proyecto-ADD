@@ -7,11 +7,14 @@
     <title>APCD · {% block title %}Panel{% endblock %}</title>
     <link rel="icon" type="image/png" href="/static/icons/favicon.png"/>
     <link rel="apple-touch-icon" href="/static/icons/favicon.png"/>
+    <!-- Restaura el estado del menú antes de pintar (evita parpadeo) -->
+    <script>try{if(localStorage.getItem('apcdNav')==='collapsed')document.documentElement.classList.add('nav-collapsed');}catch(e){}</script>
 
-    <!-- Geist Sans & Mono -->
+    <!-- Geist Sans & Mono + Material Symbols Rounded -->
     <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,300,0,0&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300,0,0&display=swap" rel="stylesheet"/>
 
     <!-- Tailwind CSS (CDN) -->
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
@@ -24,169 +27,146 @@
             },
             extend:{
                 colors:{
-                    /* Acento único: ámbar */
-                    "primary":"#F59E0B",
-                    "primary-hover":"#FBBF24",
-                    "secondary":"#F59E0B",
-                    /* Superficies (oscuro suave, no casi-negro) */
-                    "ink":"#18181B",
-                    "background":"#18181B",
-                    "bg-mesh-1":"#18181B",
-                    "surface":"#1F1F23",
-                    "surface-2":"#2A2A30",
-                    "surface-glass":"#1F1F23",
-                    /* Texto (alto contraste, legible) */
-                    "on-surface":"#EDEDEF",
-                    "on-surface-variant":"#B4B4BC",
-                    "on-surface-dim":"#8B8B95",
-                    /* Bordes visibles */
-                    "border-glass":"#34343C",
-                    "line-strong":"#46464F",
-                    /* Estados semánticos (claros para legibilidad sobre oscuro) */
-                    "error-bg": "#2A1416",
-                    "error-text": "#FCA5A5",
-                    "success-bg": "#0E2A20",
-                    "success-text": "#4ADE80",
-                    "warning-bg": "#2A2110",
-                    "warning-text": "#FBBF24",
-                    "info-bg": "#11212E",
-                    "info-text": "#7DD3FC",
+                    "primary":"#0e766b", "primary-hover":"#2a9d8f", "secondary":"#0e766b",
+                    "ink":"#e8f1ee", "background":"#eaf3f0",
+                    "surface":"#ffffff", "surface-2":"#eef5f3", "surface-glass":"#ffffff",
+                    "on-surface":"#16302d", "on-surface-variant":"#51706b", "on-surface-dim":"#8aa39d",
+                    "border-glass":"#dbe7e2", "line-strong":"#c3d4ce",
+                    "error-bg": "#fbeae2", "error-text": "#c2602f",
+                    "success-bg": "#e3f3ec", "success-text": "#127a55",
+                    "warning-bg": "#fbf0dc", "warning-text": "#b06a16",
+                    "info-bg": "#e2f1f5", "info-text": "#0e7490",
                 },
                 fontSize:{
                     'display': ['1.875rem', { lineHeight: '1.1', letterSpacing: '-0.025em', fontWeight: '600' }],
-                    'h2': ['1.5rem', { lineHeight: '1.2', letterSpacing: '-0.02em', fontWeight: '600' }],
+                    'h2': ['1.55rem', { lineHeight: '1.15', letterSpacing: '-0.025em', fontWeight: '600' }],
                     'h3': ['1.25rem', { lineHeight: '1.3', letterSpacing: '-0.015em', fontWeight: '600' }],
                     'h4': ['1rem', { lineHeight: '1.4', letterSpacing: '-0.01em', fontWeight: '600' }],
                 },
-                spacing:{
-                    "container-padding":"32px",
-                    "gutter":"24px",
-                }
+                spacing:{ "container-padding":"32px", "gutter":"24px" }
             }
         }
     }
     </script>
     <style>
-        :root { color-scheme: dark; }
-        body {
-            background-color: #18181B;
-            color: #EDEDEF;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-        }
-
+        :root { color-scheme: light; --accent:#0e766b; --ink:#16302d; }
+        body { background-color: #eaf3f0; color: #16302d; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
         h1, h2, h3 { text-wrap: balance; }
         p { text-wrap: pretty; }
-
         .tnum, .font-mono { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+        .material-symbols-outlined { font-family: 'Material Symbols Rounded'; font-weight: normal; font-style: normal; line-height: 1; font-variation-settings: 'FILL' 0, 'wght' 350, 'GRAD' 0, 'opsz' 24; }
 
-        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 350, 'GRAD' 0, 'opsz' 24; }
+        /* ── Fondo mesh animado ──────────────────────────────────── */
+        @keyframes blobA{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(7vw,5vh) scale(1.18)}}
+        @keyframes blobB{0%,100%{transform:translate(0,0) scale(1.1)}50%{transform:translate(-6vw,7vh) scale(0.92)}}
+        @keyframes blobC{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(5vw,-6vh) scale(1.22)}}
+        @keyframes blobD{0%,100%{transform:translate(0,0) scale(0.95)}50%{transform:translate(-7vw,-5vh) scale(1.12)}}
+        @keyframes blobE{0%,100%{transform:translate(0,0) scale(1.05)}50%{transform:translate(4vw,8vh) scale(0.9)}}
+        @keyframes blobF{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-5vw,4vh) scale(1.16)}}
+        #mesh-bg{position:fixed;inset:0;z-index:0;overflow:hidden;background:#e7f1ee;pointer-events:none}
+        #mesh-bg .blobs{position:absolute;inset:-12%;filter:blur(70px)}
+        #mesh-bg .blob{position:absolute;border-radius:50%}
+        #mesh-bg .veil{position:absolute;inset:0;background:rgba(255,255,255,0.45)}
 
-        /* Grano muy sutil para romper la planitud */
-        .grain::before {
-            content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
-            opacity: 0.02;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-        }
+        @keyframes btnflow{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+
+        /* ── Borde con gradiente cónico giratorio (en cada tarjeta) ─ */
+        @property --bspin{syntax:"<angle>";inherits:false;initial-value:0deg}
+        @keyframes bspin{to{--bspin:360deg}}
 
         *:focus { outline: none; }
-        *:focus-visible {
-            outline: 2px solid #F59E0B;
-            outline-offset: 2px;
-            border-radius: 4px;
-        }
+        *:focus-visible { outline: 2px solid #0e766b; outline-offset: 2px; border-radius: 4px; }
 
-        /* ── Superficies ─────────────────────────────────────────── */
+        /* ── Tarjetas de vidrio + borde animado ───────────────────── */
         .glass-panel, .panel {
-            background: #1F1F23;
-            border: 1px solid #34343C;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.3);
-            transition: border-color 0.2s ease, background-color 0.2s ease;
+            position: relative;
+            background: rgba(255,255,255,0.8);
+            border: 1px solid rgba(255,255,255,0.85);
+            box-shadow: 0 10px 34px rgba(26,72,66,0.08);
+            border-radius: 16px !important;
+            transition: box-shadow 0.2s ease;
         }
-        .glass-panel-hover:hover, .panel-hover:hover {
-            border-color: #50505A;
-            background: #25252A;
+        .glass-panel::before, .panel::before {
+            content:""; position:absolute; inset:0; border-radius:inherit; padding:1.6px;
+            pointer-events:none; z-index:2;
+            background:conic-gradient(from var(--bspin),transparent 0deg,transparent 248deg,color-mix(in srgb,#0e766b 55%,transparent) 300deg,#7fd9c4 334deg,#0e766b 352deg,transparent 360deg);
+            -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+            -webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+            mask-composite:exclude; animation:bspin 5s linear infinite;
         }
+        .glass-panel-hover:hover, .panel-hover:hover { box-shadow: 0 14px 40px rgba(26,72,66,0.14); }
 
         /* ── Botones ─────────────────────────────────────────────── */
         .btn-glass-primary, .btn-primary {
-            background: #F59E0B;
-            color: #1A1206;
-            font-weight: 600;
-            border: 1px solid #F59E0B;
-            transition: background-color 0.15s ease, transform 0.08s ease;
+            background: linear-gradient(110deg,#0e766b 0%,#2a9d8f 32%,#1f9082 50%,#33a791 68%,#0e766b 100%);
+            background-size: 220% 100%; animation: btnflow 6s ease infinite;
+            color: #ffffff; font-weight: 600; border: none;
+            box-shadow: 0 6px 16px rgba(14,118,107,0.28);
+            transition: box-shadow 0.15s ease, transform 0.08s ease, filter 0.15s ease;
         }
-        .btn-glass-primary:hover, .btn-primary:hover { background: #FBBF24; border-color:#FBBF24; }
+        .btn-glass-primary:hover, .btn-primary:hover { filter: brightness(1.05); box-shadow: 0 8px 20px rgba(14,118,107,0.34); }
         .btn-glass-primary:active, .btn-primary:active { transform: translateY(0.5px); }
-        .btn-glass-primary:disabled, .btn-primary:disabled {
-            opacity: 1; cursor: not-allowed; transform: none;
-            background:#3A3A42; border-color:#3A3A42; color:#8B8B95;
-        }
+        .btn-glass-primary:disabled, .btn-primary:disabled { cursor: not-allowed; animation: none; filter: none; background:#cdddd7; color:#8aa39d; box-shadow:none; }
 
         .btn-secondary {
-            background: #2A2A30;
-            color: #EDEDEF;
-            border: 1px solid #46464F;
-            font-weight: 500;
+            background: rgba(255,255,255,0.7); color: #3f5a55; border: 1px solid rgba(22,48,45,0.12); font-weight: 500;
             transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.08s ease;
         }
-        .btn-secondary:hover { background: #33333A; border-color: #5A5A64; }
+        .btn-secondary:hover { background: #ffffff; border-color: rgba(22,48,45,0.2); }
         .btn-secondary:active { transform: translateY(0.5px); }
 
-        /* ── Campos de formulario ───────────────────────────────── */
+        /* ── Campos ─────────────────────────────────────────────── */
         .field, .custom-input, .custom-select {
-            background-color: #17171B !important;
-            border: 1px solid #3A3A42 !important;
-            color: #EDEDEF !important;
-            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+            background-color: rgba(255,255,255,0.65) !important; border: 1px solid rgba(22,48,45,0.14) !important;
+            color: #16302d !important; transition: border-color 0.15s ease, box-shadow 0.15s ease;
         }
-        .field::placeholder, .custom-input::placeholder { color: #71717A !important; opacity: 1; }
-        .field:focus, .custom-input:focus, .custom-select:focus {
-            border-color: #F59E0B !important;
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(245,158,11,0.18) !important;
-        }
-        .custom-select:disabled, .field:disabled, .custom-input:disabled {
-            background-color: #202024 !important; color: #71717A !important; border-color: #2E2E34 !important; cursor: not-allowed;
-        }
-        .custom-select option { background-color: #1F1F23; color: #EDEDEF; }
+        .field::placeholder, .custom-input::placeholder { color: #9bb0aa !important; opacity: 1; }
+        .field:focus, .custom-input:focus, .custom-select:focus { border-color: #0e766b !important; outline: none; box-shadow: 0 0 0 3px rgba(14,118,107,0.16) !important; }
+        .custom-select:disabled, .field:disabled, .custom-input:disabled { background-color: #eef5f3 !important; color: #9bb0aa !important; border-color: #dbe7e2 !important; cursor: not-allowed; }
+        .custom-select option { background-color: #ffffff; color: #16302d; }
 
-        /* ── Tablas ─────────────────────────────────────────────── */
         .table-row-hover { transition: background-color 0.12s ease; }
-        .table-row-hover:hover { background-color: rgba(255,255,255,0.035); }
+        .table-row-hover:hover { background-color: rgba(22,48,45,0.035); }
 
-        .skip-link {
-            position: absolute; top: -100%; left: 16px; z-index: 100;
-            padding: 8px 16px; background: #F59E0B; color: #1A1206;
-            font-weight: 600; transition: top 0.2s; border-radius: 6px;
-        }
+        .skip-link { position: absolute; top: -100%; left: 16px; z-index: 100; padding: 8px 16px; background: #0e766b; color: #fff; font-weight: 600; transition: top 0.2s; border-radius: 8px; }
         .skip-link:focus { top: 16px; }
 
-        /* Skeleton loading */
-        .skeleton {
-            background: linear-gradient(90deg, #2A2A30 25%, #34343C 50%, #2A2A30 75%);
-            background-size: 200% 100%;
-            animation: skeleton-shimmer 1.5s ease-in-out infinite;
-            border-radius: 4px;
+        .skeleton { background: linear-gradient(90deg, #eef5f3 25%, #e0ece8 50%, #eef5f3 75%); background-size: 200% 100%; animation: skeleton-shimmer 1.5s ease-in-out infinite; border-radius: 6px; }
+        @keyframes skeleton-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+        /* ── Loader "luma-spin" (estados de carga) ──────────────────
+           Adaptado de un componente React a CSS puro + tema teal de la app. */
+        .luma-spin { position: relative; width: 60px; aspect-ratio: 1; }
+        .luma-spin > span { position: absolute; border-radius: 50px; box-shadow: inset 0 0 0 3px #0e766b; animation: loaderAnim 2.5s infinite; }
+        .luma-spin > span:nth-child(2) { animation-delay: -1.25s; }
+        .luma-spin.sm { width: 40px; }
+        .luma-spin.sm > span { box-shadow: inset 0 0 0 2.5px #0e766b; animation-name: loaderAnimSm; }
+        @keyframes loaderAnim {
+            0%   { inset: 0 32px 32px 0; }
+            12.5%{ inset: 0 32px 0 0; }
+            25%  { inset: 32px 32px 0 0; }
+            37.5%{ inset: 32px 0 0 0; }
+            50%  { inset: 32px 0 0 32px; }
+            62.5%{ inset: 0 0 0 32px; }
+            75%  { inset: 0 0 32px 32px; }
+            87.5%{ inset: 0 0 32px 0; }
+            100% { inset: 0 32px 32px 0; }
         }
-        @keyframes skeleton-shimmer {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
+        @keyframes loaderAnimSm {
+            0%   { inset: 0 21px 21px 0; }
+            12.5%{ inset: 0 21px 0 0; }
+            25%  { inset: 21px 21px 0 0; }
+            37.5%{ inset: 21px 0 0 0; }
+            50%  { inset: 21px 0 0 21px; }
+            62.5%{ inset: 0 0 0 21px; }
+            75%  { inset: 0 0 21px 21px; }
+            87.5%{ inset: 0 0 21px 0; }
+            100% { inset: 0 21px 21px 0; }
         }
 
-        @media (prefers-reduced-motion: reduce) {
-            *, *::before, *::after {
-                animation-duration: 0.01ms !important;
-                animation-iteration-count: 1 !important;
-                transition-duration: 0.01ms !important;
-                scroll-behavior: auto !important;
-            }
-        }
+        @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; } }
 
-        @keyframes fadeUp {
-            from { opacity: 0; transform: translateY(8px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .stagger-1 { animation: fadeUp 0.4s ease-out 0.02s both; }
         .stagger-2 { animation: fadeUp 0.4s ease-out 0.06s both; }
         .stagger-3 { animation: fadeUp 0.4s ease-out 0.10s both; }
@@ -196,115 +176,143 @@
         @keyframes toast-in { 0% { opacity: 0; transform: translateY(8px); } 100% { opacity: 1; transform: translateY(0); } }
         @keyframes toast-out { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(8px); } }
         .animate-toast-in { animation: toast-in 0.25s ease-out forwards; }
-        .toast-progress {
-            position: absolute; bottom: 0; left: 0; height: 2px;
-            background-color: currentColor; opacity: 0.5;
-            animation: toast-progress-shrink linear forwards;
-        }
+        .toast-progress { position: absolute; bottom: 0; left: 0; height: 2px; background-color: currentColor; opacity: 0.5; animation: toast-progress-shrink linear forwards; }
         @keyframes toast-progress-shrink { 0% { width: 100%; } 100% { width: 0%; } }
 
-        ::-webkit-scrollbar { width: 12px; height: 12px; }
+        ::-webkit-scrollbar { width: 11px; height: 11px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #3A3A42; border-radius: 6px; border: 3px solid #18181B; }
-        ::-webkit-scrollbar-thumb:hover { background: #4A4A54; }
+        ::-webkit-scrollbar-thumb { background: rgba(22,48,45,0.16); border-radius: 8px; border: 3px solid transparent; background-clip: padding-box; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(22,48,45,0.28); background-clip: padding-box; }
+
+        /* ── Sidebar colapsable ──────────────────────────────────── */
+        .app-sidebar { width: 256px; transition: width .5s cubic-bezier(.45,0,.2,1); }
+        .app-main { transition: margin-left .5s cubic-bezier(.45,0,.2,1); }
+        @media (min-width: 768px) { .app-main { margin-left: 256px; } }
+        html.nav-collapsed .app-sidebar { width: 84px; }
+        @media (min-width: 768px) { html.nav-collapsed .app-main { margin-left: 84px; } }
+
+        .sidebar-bg {
+            position:absolute; inset:0; background:rgba(255,255,255,0.55);
+            backdrop-filter:blur(22px); -webkit-backdrop-filter:blur(22px);
+            border-right:1px solid rgba(255,255,255,0.6);
+            clip-path:circle(1400px at 42px 42px);
+            transition:clip-path .6s cubic-bezier(.45,0,.2,1);
+        }
+        html.nav-collapsed .sidebar-bg { clip-path:circle(26px at 42px 42px); }
+        .sidebar-chrome { transition:opacity .3s ease; }
+        html.nav-collapsed .sidebar-chrome { opacity:0; pointer-events:none; }
+        .sidebar-nav { transition:opacity .35s ease, transform .35s ease; }
+        html.nav-collapsed .sidebar-nav { opacity:0; pointer-events:none; transform:translateX(-8px); }
+
+        /* hamburguesa: abierto = X, colapsado = 3 rayas */
+        .ham-l1, .ham-l3 { transition: transform .35s cubic-bezier(.6,.2,.2,1); }
+        .ham-l2 { transition: opacity .2s ease; }
+        .ham-l1 { transform: translateY(6.75px) rotate(45deg); }
+        .ham-l2 { opacity: 0; }
+        .ham-l3 { transform: translateY(-6.75px) rotate(-45deg); }
+        html.nav-collapsed .ham-l1 { transform: none; }
+        html.nav-collapsed .ham-l2 { opacity: 1; }
+        html.nav-collapsed .ham-l3 { transform: none; }
+
+        .nav-item { color: #51706b; }
+        .nav-item:hover { background: rgba(22,48,45,0.04); color: #16302d; }
+        .nav-item.active { background: color-mix(in srgb, #0e766b 12%, transparent); color: #0e766b; font-weight: 600; }
     </style>
     {% block head %}{% endblock %}
 </head>
-<body class="grain flex min-h-screen overflow-x-hidden relative font-sans text-on-surface bg-ink">
+<body class="flex min-h-screen overflow-x-hidden relative font-sans text-on-surface">
+
+    <!-- Fondo mesh animado -->
+    <div id="mesh-bg" aria-hidden="true">
+        <div class="blobs">
+            <div class="blob" style="top:2%;left:6%;width:42vw;height:42vw;background:#72b9bb;opacity:.85;animation:blobA 26s ease-in-out infinite"></div>
+            <div class="blob" style="top:-6%;right:4%;width:38vw;height:38vw;background:#ffd1bd;opacity:.8;animation:blobC 31s ease-in-out infinite"></div>
+            <div class="blob" style="bottom:-8%;left:18%;width:46vw;height:46vw;background:#8cc5b8;opacity:.78;animation:blobB 29s ease-in-out infinite"></div>
+            <div class="blob" style="bottom:4%;right:12%;width:34vw;height:34vw;background:#dbf4a4;opacity:.62;animation:blobD 34s ease-in-out infinite"></div>
+            <div class="blob" style="top:34%;left:38%;width:40vw;height:40vw;background:#ffebe0;opacity:.85;animation:blobE 24s ease-in-out infinite"></div>
+            <div class="blob" style="top:48%;right:30%;width:30vw;height:30vw;background:#b5d9d9;opacity:.7;animation:blobF 28s ease-in-out infinite"></div>
+        </div>
+        <div class="veil"></div>
+    </div>
 
     <a href="#contenido-principal" class="skip-link">Saltar al contenido principal</a>
 
-    <!-- Sidebar -->
-    <nav class="w-[256px] h-screen fixed left-0 top-0 flex-col py-6 z-40 hidden md:flex border-r border-border-glass bg-[#1B1B1F]" aria-label="Navegación principal">
-        <div class="relative z-10 flex flex-col h-full">
-            <!-- Marca -->
-            <div class="px-6 mb-10 flex items-center gap-3">
-                <div class="w-9 h-9 rounded-md bg-white flex items-center justify-center shrink-0 overflow-hidden shadow-sm">
-                    <img src="/static/icons/app-logo.png" alt="APCD" class="w-7 h-7 object-contain"/>
-                </div>
-                <div class="leading-none">
-                    <h1 class="font-semibold text-on-surface text-[15px] tracking-tight">APCD</h1>
-                    <p class="text-[10px] text-on-surface-dim font-mono mt-1 tracking-wide">data&nbsp;pipeline</p>
+    <!-- Sidebar colapsable -->
+    <nav class="app-sidebar h-screen fixed left-0 top-0 z-40 hidden md:block overflow-hidden" aria-label="Navegación principal">
+        <div class="sidebar-bg"></div>
+        <div class="relative z-10 flex flex-col h-full py-[22px] px-4">
+            <!-- Hamburguesa + marca -->
+            <div class="flex items-center gap-3 min-h-[42px]">
+                <button onclick="toggleNav()" aria-label="Abrir o cerrar menú" class="w-[42px] h-[42px] rounded-xl flex items-center justify-center shrink-0 bg-transparent border-0 cursor-pointer">
+                    <span class="relative block" style="width:22px;height:16px">
+                        <span class="ham-l1" style="position:absolute;left:0;top:0;width:22px;height:2.5px;border-radius:3px;background:#16302d"></span>
+                        <span class="ham-l2" style="position:absolute;left:0;top:6.75px;width:22px;height:2.5px;border-radius:3px;background:#16302d"></span>
+                        <span class="ham-l3" style="position:absolute;left:0;bottom:0;width:22px;height:2.5px;border-radius:3px;background:#16302d"></span>
+                    </span>
+                </button>
+                <div class="sidebar-chrome flex items-center gap-2.5 whitespace-nowrap">
+                    <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style="background:#0e766b;box-shadow:0 6px 16px rgba(14,118,107,0.32)">
+                        <span class="material-symbols-outlined text-[20px]" style="color:#fff;font-variation-settings:'FILL' 1;">graph_3</span>
+                    </div>
+                    <div class="leading-none">
+                        <h1 class="font-bold text-on-surface text-[15px] tracking-tight">APCD</h1>
+                        <p class="text-[10px] text-on-surface-dim font-mono mt-1 tracking-wide">data&nbsp;pipeline</p>
+                    </div>
                 </div>
             </div>
 
+            <p class="sidebar-chrome px-2.5 mt-[26px] mb-2 text-[10px] font-mono uppercase tracking-[0.16em] text-on-surface-dim whitespace-nowrap">Espacio de trabajo</p>
+
             <!-- Navegación -->
-            <div class="flex-1 flex flex-col gap-0.5 px-3">
-                <p class="px-3 mb-2 text-[10px] font-mono uppercase tracking-[0.15em] text-on-surface-dim">Espacio de trabajo</p>
-
-                <a href="/" class="group relative flex items-center gap-3 pl-4 pr-3 py-2.5 rounded-md text-[14px] transition-colors {% if active_tab == 'overview' %}bg-white/[0.06] text-on-surface font-semibold{% else %}text-on-surface-variant hover:text-on-surface hover:bg-white/[0.04]{% endif %}">
-                    {% if active_tab == 'overview' %}<span class="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 bg-primary rounded-r"></span>{% endif %}
-                    <span class="w-7 h-7 rounded-md bg-white flex items-center justify-center shrink-0 overflow-hidden transition-all {% if active_tab == 'overview' %}ring-1 ring-primary/60{% else %}opacity-90 group-hover:opacity-100{% endif %}">
-                        <img src="/static/icons/overview.png" alt="" class="w-[18px] h-[18px] object-contain"/>
+            <div class="sidebar-nav flex flex-col gap-[3px]">
+                {% set nav = [
+                    ('/app', 'overview', 'dashboard', 'Resumen'),
+                    ('/report', 'report', 'auto_awesome', 'Reporte automático'),
+                    ('/databases', 'databases', 'database', 'Bases de datos'),
+                    ('/sql-editor', 'sql-editor', 'terminal', 'Editor SQL'),
+                    ('/statistics', 'statistics', 'monitoring', 'Estadísticas'),
+                    ('/etl', 'etl', 'mop', 'Limpieza'),
+                    ('/modeling', 'modeling', 'model_training', 'Machine Learning'),
+                    ('/web-scraping', 'web-scraping', 'travel_explore', 'Web Scraping')
+                ] %}
+                {% for href, tab, icon, label in nav %}
+                <a href="{{ href }}" class="nav-item group relative flex items-center gap-[11px] px-3 py-[9px] rounded-[11px] text-[13.5px] whitespace-nowrap transition-colors {% if active_tab == tab %}active{% endif %}">
+                    {% if active_tab == tab %}<span class="absolute -left-4 top-1/2 -translate-y-1/2 h-[18px] w-[3px] rounded-r bg-primary"></span>{% endif %}
+                    <span class="w-[30px] h-[30px] rounded-[9px] flex items-center justify-center shrink-0" style="background:{% if active_tab == tab %}#0e766b{% else %}rgba(255,255,255,0.85){% endif %};box-shadow:0 1px 3px rgba(22,48,45,0.08)">
+                        <span class="material-symbols-outlined text-[18px]" style="color:{% if active_tab == tab %}#fff{% else %}#5f7d78{% endif %};{% if active_tab == tab %}font-variation-settings:'FILL' 1;{% endif %}">{{ icon }}</span>
                     </span>
-                    Resumen
+                    {{ label }}
                 </a>
+                {% endfor %}
+            </div>
 
-                <a href="/databases" class="group relative flex items-center gap-3 pl-4 pr-3 py-2.5 rounded-md text-[14px] transition-colors {% if active_tab == 'databases' %}bg-white/[0.06] text-on-surface font-semibold{% else %}text-on-surface-variant hover:text-on-surface hover:bg-white/[0.04]{% endif %}">
-                    {% if active_tab == 'databases' %}<span class="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 bg-primary rounded-r"></span>{% endif %}
-                    <span class="w-7 h-7 rounded-md bg-white flex items-center justify-center shrink-0 overflow-hidden transition-all {% if active_tab == 'databases' %}ring-1 ring-primary/60{% else %}opacity-90 group-hover:opacity-100{% endif %}">
-                        <img src="/static/icons/databases.png" alt="" class="w-[18px] h-[18px] object-contain"/>
-                    </span>
-                    Bases de datos
-                </a>
-
-                <a href="/pipelines" class="group relative flex items-center gap-3 pl-4 pr-3 py-2.5 rounded-md text-[14px] transition-colors {% if active_tab == 'pipelines' %}bg-white/[0.06] text-on-surface font-semibold{% else %}text-on-surface-variant hover:text-on-surface hover:bg-white/[0.04]{% endif %}">
-                    {% if active_tab == 'pipelines' %}<span class="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 bg-primary rounded-r"></span>{% endif %}
-                    <span class="w-7 h-7 rounded-md bg-white flex items-center justify-center shrink-0 overflow-hidden transition-all {% if active_tab == 'pipelines' %}ring-1 ring-primary/60{% else %}opacity-90 group-hover:opacity-100{% endif %}">
-                        <img src="/static/icons/pipelines.png" alt="" class="w-[18px] h-[18px] object-contain"/>
-                    </span>
-                    Flujos de trabajo
-                </a>
-
-                <a href="/sql-editor" class="group relative flex items-center gap-3 pl-4 pr-3 py-2.5 rounded-md text-[14px] transition-colors {% if active_tab == 'sql-editor' %}bg-white/[0.06] text-on-surface font-semibold{% else %}text-on-surface-variant hover:text-on-surface hover:bg-white/[0.04]{% endif %}">
-                    {% if active_tab == 'sql-editor' %}<span class="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 bg-primary rounded-r"></span>{% endif %}
-                    <span class="w-7 h-7 rounded-md bg-white flex items-center justify-center shrink-0 overflow-hidden transition-all {% if active_tab == 'sql-editor' %}ring-1 ring-primary/60{% else %}opacity-90 group-hover:opacity-100{% endif %}">
-                        <img src="/static/icons/sql-editor.png" alt="" class="w-[18px] h-[18px] object-contain"/>
-                    </span>
-                    Editor SQL
-                </a>
-
-                <a href="/statistics" class="group relative flex items-center gap-3 pl-4 pr-3 py-2.5 rounded-md text-[14px] transition-colors {% if active_tab == 'statistics' %}bg-white/[0.06] text-on-surface font-semibold{% else %}text-on-surface-variant hover:text-on-surface hover:bg-white/[0.04]{% endif %}">
-                    {% if active_tab == 'statistics' %}<span class="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 bg-primary rounded-r"></span>{% endif %}
-                    <span class="w-7 h-7 rounded-md bg-white flex items-center justify-center shrink-0 overflow-hidden transition-all {% if active_tab == 'statistics' %}ring-1 ring-primary/60{% else %}opacity-90 group-hover:opacity-100{% endif %}">
-                        <img src="/static/icons/statistics.png" alt="" class="w-[18px] h-[18px] object-contain"/>
-                    </span>
-                    Estadísticas
-                </a>
-
-                <a href="/modeling" class="group relative flex items-center gap-3 pl-4 pr-3 py-2.5 rounded-md text-[14px] transition-colors {% if active_tab == 'modeling' %}bg-white/[0.06] text-on-surface font-semibold{% else %}text-on-surface-variant hover:text-on-surface hover:bg-white/[0.04]{% endif %}">
-                    {% if active_tab == 'modeling' %}<span class="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 bg-primary rounded-r"></span>{% endif %}
-                    <span class="w-7 h-7 rounded-md bg-white flex items-center justify-center shrink-0 overflow-hidden transition-all {% if active_tab == 'modeling' %}ring-1 ring-primary/60{% else %}opacity-90 group-hover:opacity-100{% endif %}">
-                        <img src="/static/icons/modeling.png" alt="" class="w-[18px] h-[18px] object-contain"/>
-                    </span>
-                    Machine Learning
-                </a>
-
-                <a href="/web-scraping" class="group relative flex items-center gap-3 pl-4 pr-3 py-2.5 rounded-md text-[14px] transition-colors {% if active_tab == 'web-scraping' %}bg-white/[0.06] text-on-surface font-semibold{% else %}text-on-surface-variant hover:text-on-surface hover:bg-white/[0.04]{% endif %}">
-                    {% if active_tab == 'web-scraping' %}<span class="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 bg-primary rounded-r"></span>{% endif %}
-                    <span class="w-7 h-7 rounded-md bg-white flex items-center justify-center shrink-0 overflow-hidden transition-all {% if active_tab == 'web-scraping' %}ring-1 ring-primary/60{% else %}opacity-90 group-hover:opacity-100{% endif %}">
-                        <img src="/static/icons/web-scraping.png" alt="" class="w-[18px] h-[18px] object-contain"/>
-                    </span>
-                    Web Scraping
-                </a>
+            <!-- Pie: estado -->
+            <div class="sidebar-chrome mt-auto p-3.5 rounded-2xl whitespace-nowrap" style="background:rgba(255,255,255,0.5);border:1px solid rgba(255,255,255,0.7)">
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full shrink-0 bg-primary" style="box-shadow:0 0 0 4px color-mix(in srgb,#0e766b 16%,transparent)"></span>
+                    <span class="font-mono text-[11.5px] text-on-surface-variant">en memoria</span>
+                </div>
+                <div class="font-mono text-[11px] text-on-surface-dim mt-1.5 pl-4"><span id="sidebar-sources">0 fuentes</span></div>
             </div>
         </div>
     </nav>
 
     <!-- Contenido principal -->
-    <div class="md:ml-[256px] flex-1 flex flex-col min-h-screen relative z-10">
+    <div class="app-main flex-1 flex flex-col min-h-screen relative z-10">
 
         <!-- Header -->
-        <header class="sticky top-0 z-30 h-14 px-6 md:px-8 flex justify-between items-center border-b border-border-glass bg-[#18181B]/85 backdrop-blur-sm">
+        <header class="sticky top-0 z-30 h-[58px] px-6 md:px-8 flex justify-between items-center"
+                style="background:rgba(247,251,250,0.7);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-bottom:1px solid rgba(255,255,255,0.6)">
             <div class="flex items-center gap-2 md:hidden">
-                <span class="w-6 h-6 rounded bg-white flex items-center justify-center overflow-hidden shrink-0">
-                    <img src="/static/icons/app-logo.png" alt="APCD" class="w-5 h-5 object-contain"/>
+                <span class="w-6 h-6 rounded-md flex items-center justify-center overflow-hidden shrink-0" style="background:#0e766b">
+                    <span class="material-symbols-outlined text-[16px]" style="color:#fff;font-variation-settings:'FILL' 1;">graph_3</span>
                 </span>
-                <span class="font-semibold text-on-surface text-sm tracking-tight">APCD</span>
+                <span class="font-bold text-on-surface text-sm tracking-tight">APCD</span>
             </div>
             <div class="hidden md:block text-[12px] text-on-surface-dim font-mono">{% block breadcrumb %}{% endblock %}</div>
             <div class="flex items-center gap-3">
-                <div class="flex items-center gap-2 text-[12px] font-mono text-on-surface-variant border border-border-glass rounded-md px-3 py-1.5 bg-surface">
+                <div class="flex items-center gap-2 text-[12px] font-mono text-on-surface-variant rounded-[10px] px-3 py-1.5"
+                     style="background:rgba(255,255,255,0.55);border:1px solid rgba(255,255,255,0.7)">
                     <span class="w-1.5 h-1.5 rounded-full bg-primary shrink-0"></span>
                     <span id="sources-count-badge">fuentes: 0</span>
                 </div>
@@ -320,6 +328,12 @@
     <!-- Toasts -->
     <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-3 pointer-events-none" aria-live="polite"></div>
 
+    <script>
+        function toggleNav(){
+            const collapsed = document.documentElement.classList.toggle('nav-collapsed');
+            try { localStorage.setItem('apcdNav', collapsed ? 'collapsed' : 'open'); } catch(e){}
+        }
+    </script>
     <script src="/static/js/app.js"></script>
     {% block scripts %}{% endblock %}
 </body>
