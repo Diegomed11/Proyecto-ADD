@@ -16,8 +16,8 @@ Consola de AWS → **EC2** → **Launch instance**:
 | Campo | Valor |
 |---|---|
 | **Name** | `datia` |
-| **AMI** | Amazon Linux 2023 (x86_64) — el de por defecto |
-| **Instance type** | **`t3.large`** (8 GB RAM, 2 vCPU) ⚠️ no uses micro/small |
+| **AMI** | **Ubuntu Server** (x86_64) — usuario `ubuntu` |
+| **Instance type** | **8 GB de RAM** (`t3.large` o `m7i-flex.large`, 2 vCPU) ⚠️ no uses micro/small |
 | **Key pair** | Crea uno nuevo (`datia-key`) y descárgalo — sirve para entrar por SSH si algo falla |
 | **Network → Security group** | Crea uno nuevo y permite: |
 | &nbsp;&nbsp;• **HTTP** (puerto 80) | Origen **Anywhere (0.0.0.0/0)** ← para que todos vean la demo |
@@ -39,10 +39,10 @@ transformers). Es normal que el primer arranque tarde.
 
 (Opcional) Para ver el progreso, entra por SSH y mira el log:
 ```bash
-ssh -i datia-key.pem ec2-user@<IP-pública>
+ssh -i datia-key.pem ubuntu@<IP-pública>
 sudo tail -f /var/log/cloud-init-output.log
 # ...cuando veas "Datia desplegada", ya está.
-sudo docker compose -f /home/ec2-user/datia/docker-compose.yml ps   # debe decir healthy
+sudo docker compose -f /home/ubuntu/datia/docker-compose.yml ps   # debe decir healthy
 ```
 
 ---
@@ -82,7 +82,7 @@ Al terminar la presentación:
 Entra por SSH (`ssh -i datia-key.pem ec2-user@<IP>`) y:
 
 ```bash
-cd /home/ec2-user/datia
+cd /home/ubuntu/datia
 sudo docker compose ps                 # estado (debe ser "healthy")
 sudo docker compose logs --tail 50 apcd   # logs de la app
 sudo docker compose up --build -d      # reconstruir/reiniciar
@@ -93,5 +93,5 @@ curl -s localhost:80/health            # debe responder {"status":"ok"}
 - **"se reinicia / se queda sin memoria"** → confirma que es **t3.large (8 GB)**, no una micro.
 - **Actualizar el código** (tras un nuevo push):
   ```bash
-  cd /home/ec2-user/datia && sudo git pull && sudo docker compose up --build -d
+  cd /home/ubuntu/datia && sudo git pull && sudo docker compose up --build -d
   ```
