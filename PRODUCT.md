@@ -2,7 +2,7 @@
 
 ## Register
 
-product
+producto
 
 ## Users
 Estudiantes universitarios y profesores en clases de bases de datos avanzadas o ciencia de datos. Requieren una interfaz clara para entender flujos de ETL, Scraping y Machine Learning.
