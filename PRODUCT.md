@@ -1,6 +1,6 @@
 # Product
 
-## Register
+
 
 producto
 
