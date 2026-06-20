@@ -1,6 +1,5 @@
 ---
 title: APCD Data Pipeline
-emoji: 📊
 colorFrom: gray
 colorTo: yellow
 sdk: docker
